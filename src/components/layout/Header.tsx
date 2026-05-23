@@ -23,15 +23,19 @@ export default function Header() {
   return (
     <header className="app-header">
       <div className="header-top">
-        <div>
-          <div className="label-hero">MrTungTrade • Aura Edition</div>
-          <h1>VIP Radar thị trường</h1>
-          <p className="hero-subtitle">Tách riêng crypto và chứng khoán Việt Nam. Focus vào kèo vàng, tín hiệu và độ tin cậy.</p>
+        <div className="header-brand">
+          <div className="label-hero">MR TUNG TRADE</div>
+          <div className="header-title-row">
+            <h1>VIP Radar</h1>
+            <span className="hero-tag">Crypto + VN30</span>
+          </div>
+          <p className="hero-subtitle">Radar nhanh mã tăng mạnh và kèo vàng tin cậy.</p>
         </div>
+
         <div className="top-badges">
-          <span className="badge">{cryptoCount} Crypto</span>
-          <span className="badge">{vnCount} VN Stock</span>
-          <span className="badge">Top Confidence {topConfidence}%</span>
+          <span className="badge badge-small">{cryptoCount} Crypto</span>
+          <span className="badge badge-small">{vnCount} VN Stock</span>
+          <span className="badge badge-small">Top {topConfidence}%</span>
         </div>
       </div>
 
@@ -48,32 +52,32 @@ export default function Header() {
         ))}
       </div>
 
-      <div className="header-grid">
+      <div className="header-grid compact">
         <div className="header-card">
-          <div className="card-title">
+          <div className="card-title compact-title">
             <span>Thông tin nhanh</span>
-            <span className="badge">Cập nhật tức thì</span>
+            <span className="badge badge-small">Live</span>
           </div>
-          <div className="asset-meta" style={{ gap: 12 }}>
-            <span>Top 1: {topAsset ? `${topAsset.symbol} (${topAsset.sourceLabel})` : 'Chưa có dữ liệu'}</span>
-            <span>Giá hiện tại: {topAsset ? topAsset.currentPrice.toLocaleString('vi-VN', { maximumFractionDigits: 2 }) : '-'}</span>
-            <span>Triển vọng: {topAsset ? `${topAsset.score} điểm` : '---'}</span>
-            <span>Confidence: {topAsset ? `${topAsset.confidence ?? 0}%` : '---'}</span>
+          <div className="asset-meta" style={{ gap: 10, flexWrap: 'wrap' }}>
+            <span>Top 1: {topAsset ? `${topAsset.symbol}` : '---'}</span>
+            <span>{topAsset ? `${topAsset.currentPrice.toLocaleString('vi-VN', { maximumFractionDigits: 2 })}` : '-'}</span>
+            <span>{topAsset ? `${topAsset.score} điểm` : '---'}</span>
+            <span>{topAsset ? `${topAsset.confidence ?? 0}% tin cậy` : '---'}</span>
           </div>
         </div>
 
         <div className="header-card">
-          <div className="card-title">
-            <span>Trend & tin tức</span>
-            <span className="badge">Multi-source</span>
+          <div className="card-title compact-title">
+            <span>Trend</span>
+            <span className="badge badge-small">News</span>
           </div>
-          <div className="card-list" style={{ gap: 10, maxHeight: 175, overflow: 'auto' }}>
-            {news.slice(0, 4).map((item) => (
+          <div className="card-list" style={{ gap: 8, maxHeight: 148, overflow: 'auto' }}>
+            {news.slice(0, 3).map((item) => (
               <a key={item.link} href={item.link} target="_blank" rel="noreferrer" className="news-link">
                 {item.title}
               </a>
             ))}
-            {news.length === 0 && <div className="muted-text">Đang tải tin tức, vui lòng đợi.</div>}
+            {news.length === 0 && <div className="muted-text">Đang tải tin tức...</div>}
           </div>
         </div>
       </div>

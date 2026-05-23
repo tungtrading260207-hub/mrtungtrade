@@ -54,18 +54,75 @@ select {
 
 .app-header {
   margin: 0 18px 18px;
-  padding: 24px;
-  border-radius: 28px;
-  background: linear-gradient(180deg, rgba(24, 32, 58, 0.96), rgba(10, 15, 28, 0.88));
-  border: 1px solid rgba(203, 171, 79, 0.16);
-  box-shadow: 0 32px 60px rgba(0, 0, 0, 0.25);
+  padding: 18px 18px 16px;
+  border-radius: 26px;
+  background: linear-gradient(180deg, rgba(22, 29, 47, 0.98), rgba(10, 14, 25, 0.92));
+  border: 1px solid rgba(255, 214, 90, 0.14);
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.22);
 }
 
 .header-top {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  margin-bottom: 20px;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.header-brand {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.header-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.header-title-row h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 2.5vw, 2.4rem);
+  letter-spacing: 0.03em;
+  color: #f8e27a;
+}
+
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: rgba(255, 214, 90, 0.12);
+  color: #ffea9b;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.label-hero {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: #fff1b1;
+  font-size: 11px;
+}
+
+.hero-subtitle {
+  color: rgba(250, 244, 208, 0.75);
+  max-width: 720px;
+  margin: 0;
+  font-size: 0.94rem;
+}
+
+.badge-small {
+  padding: 5px 10px;
+  font-size: 11px;
+}
+
+.top-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .label-hero {
@@ -120,15 +177,23 @@ select {
 
 .header-grid {
   display: grid;
-  gap: 18px;
+  gap: 16px;
   grid-template-columns: 1fr;
 }
 
+.header-grid.compact {
+  gap: 14px;
+}
+
 .header-card {
-  background: rgba(11, 17, 32, 0.82);
-  border: 1px solid rgba(203, 171, 79, 0.12);
-  border-radius: 26px;
-  padding: 22px;
+  background: rgba(18, 23, 40, 0.88);
+  border: 1px solid rgba(255, 214, 90, 0.12);
+  border-radius: 24px;
+  padding: 16px 18px;
+}
+
+.compact-title {
+  gap: 10px;
 }
 
 .news-link {
