@@ -50,6 +50,7 @@ export default function DashboardPage() {
   const watchlistSymbols = useAppStore((state) => state.watchlistSymbols);
   const addWatchlistSymbol = useAppStore((state) => state.addWatchlistSymbol);
   const removeWatchlistSymbol = useAppStore((state) => state.removeWatchlistSymbol);
+  const refreshAssetPrice = useAppStore((state) => state.refreshAssetPrice);
   const news = useAppStore((state) => state.news);
 
   const [manualSymbol, setManualSymbol] = useState('');
@@ -250,6 +251,17 @@ export default function DashboardPage() {
               <button type="button" className="secondary-button" onClick={() => { selectAsset(searchedAsset.id); setActiveTab('calc'); }}>
                 Nhập vị thế
               </button>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={async () => {
+                  setSearchMessage('Đang làm mới giá...');
+                  const ok = await refreshAssetPrice(searchedAsset.id);
+                  setSearchMessage(ok ? `Đã cập nhật giá cho ${searchedAsset.symbol}` : `Không thể lấy giá cho ${searchedAsset.symbol}`);
+                }}
+              >
+                Lấy giá
+              </button>
             </div>
           </div>
         )}
@@ -283,6 +295,19 @@ export default function DashboardPage() {
                         }}
                       >
                         Phân tích
+                      </button>
+                    )}
+                    {watchAsset && (
+                      <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={async () => {
+                          setSearchMessage(`Đang làm mới giá ${symbol}...`);
+                          const ok = await refreshAssetPrice(symbol);
+                          setSearchMessage(ok ? `Đã cập nhật giá ${symbol}` : `Không thể lấy giá ${symbol}`);
+                        }}
+                      >
+                        Làm mới giá
                       </button>
                     )}
                     <button type="button" className="secondary-button" onClick={() => removeWatchlistSymbol(symbol)}>Xóa</button>

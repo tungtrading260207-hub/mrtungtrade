@@ -21,6 +21,9 @@ export default function CalcPage() {
   const [leverage, setLeverage] = useState(1);
   const [direction, setDirection] = useState<'LONG' | 'SHORT'>('LONG');
   const [size, setSize] = useState(1);
+  const [stopLoss, setStopLoss] = useState('');
+  const [takeProfit, setTakeProfit] = useState('');
+  const [template, setTemplate] = useState<string>('');
 
   const normalizedSymbol = manualSymbol.trim().toUpperCase();
   const selectedAsset = radarAssets.find((item) => item.id === selectedAssetId);
@@ -41,6 +44,13 @@ export default function CalcPage() {
     if (!entryPrice || !currentPrice) return { pl: 0, pct: 0 };
     return computePnL(Number(entryPrice), currentPrice, leverage, direction);
   }, [entryPrice, currentPrice, leverage, direction]);
+
+  function computeExpected(entry: number, priceTarget: number, leverage: number, direction: 'LONG' | 'SHORT', sizeUnits: number) {
+    const delta = direction === 'LONG' ? priceTarget - entry : entry - priceTarget;
+    const pl = delta * leverage * sizeUnits;
+    const pct = (delta / entry) * 100;
+    return { pl, pct };
+  }
 
   const handleSave = () => {
     const symbol = normalizedSymbol || selectedAsset?.symbol;
@@ -124,6 +134,14 @@ export default function CalcPage() {
                 />
               </label>
               <label>
+                Stop Loss
+                <input type="number" placeholder="Stop loss" value={stopLoss} onChange={(e) => setStopLoss(e.target.value)} />
+              </label>
+              <label>
+                Take Profit
+                <input type="number" placeholder="Take profit" value={takeProfit} onChange={(e) => setTakeProfit(e.target.value)} />
+              </label>
+              <label>
                 Đòn bẩy
                 <select value={leverage} onChange={(event) => setLeverage(Number(event.target.value))}>
                   {[1, 5, 10, 20].map((value) => (
@@ -141,6 +159,14 @@ export default function CalcPage() {
                   value={size}
                   onChange={(event) => setSize(Number(event.target.value))}
                 />
+              </label>
+              <label>
+                Mẫu nhanh
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button type="button" className={`secondary-button ${template==='conservative'?'active':''}`} onClick={() => { setTemplate('conservative'); setLeverage(1); setSize(1); }}>Conservative</button>
+                  <button type="button" className={`secondary-button ${template==='balanced'?'active':''}`} onClick={() => { setTemplate('balanced'); setLeverage(5); setSize(1); }}>Balanced</button>
+                  <button type="button" className={`secondary-button ${template==='aggressive'?'active':''}`} onClick={() => { setTemplate('aggressive'); setLeverage(10); setSize(2); }}>Aggressive</button>
+                </div>
               </label>
               <label>
                 Chiều lệnh
@@ -164,6 +190,33 @@ export default function CalcPage() {
                 <strong className={pct >= 0 ? 'text-success' : 'text-danger'}>{formatPercent(pct)}</strong>
                 <span>Tỷ lệ %</span>
               </div>
+                {entryPrice && stopLoss && (
+                  (() => {
+                    const e = Number(entryPrice);
+                    const sl = Number(stopLoss);
+                    const expectedSL = computeExpected(e, sl, leverage, direction, size);
+                    return (
+                      <div className="metric">
+                        <strong className={expectedSL.pl <= 0 ? 'text-danger' : 'text-success'}>{formatCurrency(expectedSL.pl, assetType === 'crypto' ? 'USD' : 'VND')}</strong>
+                        <span>Ước tính lỗ tại SL ({formatPercent(expectedSL.pct)})</span>
+                      </div>
+                    );
+                  })()
+                )}
+                {entryPrice && takeProfit && (
+                  (() => {
+                    const e = Number(entryPrice);
+                    const tp = Number(takeProfit);
+                    const expectedTP = computeExpected(e, tp, leverage, direction, size);
+                    const rr = direction === 'LONG' ? (tp - e) / (e - Number(stopLoss || (e * 0.99))) : (e - tp) / (Number(stopLoss || (e * 1.01)) - e);
+                    return (
+                      <div className="metric">
+                        <strong className={expectedTP.pl >= 0 ? 'text-success' : 'text-danger'}>{formatCurrency(expectedTP.pl, assetType === 'crypto' ? 'USD' : 'VND')}</strong>
+                        <span>Ước tính lời tại TP ({formatPercent(expectedTP.pct)}) • R:R ≈ {isFinite(rr) ? `${rr.toFixed(2)}:1` : '—'}</span>
+                      </div>
+                    );
+                  })()
+                )}
               <div className="metric">
                 <strong>{direction}</strong>
                 <span>Chiều lệnh</span>

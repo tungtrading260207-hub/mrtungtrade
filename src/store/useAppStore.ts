@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { AssetAnalysis, AssetSummary, MarketType, TradeRecord } from '../types';
-import { fetchCryptoRadar, fetchNewsFeed, fetchVnStockRadar } from '../data/api';
+import { fetchCryptoRadar, fetchNewsFeed, fetchVnStockRadar, fetchLiveAssetSummary } from '../data/api';
 
 interface AppState {
   activeTab: 'dashboard' | 'analysis' | 'calc' | 'history';
@@ -21,6 +21,7 @@ interface AppState {
   addWatchlistSymbol: (symbol: string) => void;
   removeWatchlistSymbol: (symbol: string) => void;
   addCustomAsset: (asset: AssetSummary) => void;
+  refreshAssetPrice: (symbolOrId: string) => Promise<boolean>;
 }
 
 const vnStockSymbols = ['SSI', 'VCB', 'FPT', 'HPG', 'VNM'];
@@ -211,6 +212,45 @@ const useAppStore = create<AppState>((set, get) => ({
     const existingIndex = current.findIndex((item) => item.id === asset.id || item.symbol.toUpperCase() === asset.symbol.toUpperCase());
     const updatedAssets = existingIndex !== -1 ? [...current.slice(0, existingIndex), asset, ...current.slice(existingIndex + 1)] : [asset, ...current];
     set({ radarAssets: updatedAssets });
+  },
+  refreshAssetPrice: async (symbolOrId: string) => {
+    const normalized = symbolOrId.trim().toUpperCase();
+    const assets = get().radarAssets;
+    const idx = assets.findIndex((a) => a.id.toUpperCase() === normalized || a.symbol.toUpperCase() === normalized);
+    const type = idx !== -1 ? assets[idx].type : inferAssetType(normalized);
+    try {
+      const live = await fetchLiveAssetSummary(normalized, type);
+      const updated: AssetSummary = {
+        id: idx !== -1 ? assets[idx].id : normalized,
+        symbol: normalized,
+        name: idx !== -1 ? assets[idx].name : normalized,
+        type,
+        currentPrice: live.currentPrice,
+        priceChange24h: live.priceChange24h,
+        priceHigh24h: live.priceHigh24h,
+        priceLow24h: live.priceLow24h,
+        marketCap: live.marketCap,
+        volume24h: live.volume24h,
+        lastUpdated: new Date().toISOString(),
+        sourceLabel: live.sourceLabel,
+        sourceDetails: live.sourceDetails,
+        confidence: live.confidence,
+        raw: assets[idx]?.raw ?? {},
+        hasLivePrice: true,
+        score: 0,
+      };
+      const updatedAssets = assets.slice();
+      const computedScore = Math.max(0, Math.min(100, Math.round((live.confidence ?? 30))));
+      if (idx !== -1) {
+        updatedAssets[idx] = { ...updated, score: computedScore };
+      } else {
+        updatedAssets.unshift({ ...updated, score: computedScore });
+      }
+      set({ radarAssets: updatedAssets });
+      return true;
+    } catch (error) {
+      return false;
+    }
   },
   refreshHistoryPrices: () => {
     const assetsById = Object.fromEntries(get().radarAssets.map((asset) => [asset.id, asset]));
