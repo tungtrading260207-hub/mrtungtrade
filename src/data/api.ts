@@ -107,9 +107,10 @@ export async function fetchCryptoRadar(): Promise<AssetSummary[]> {
         const binanceData = await fetchBinanceTicker(binanceSymbol);
         const binancePrice = Number(binanceData.lastPrice ?? binanceData.prevClosePrice ?? binanceData.openPrice ?? 0);
         const deviation = Math.abs(asset.currentPrice - binancePrice) / Math.max(1, asset.currentPrice) * 100;
-        asset.sourceDetails = [`CoinGecko: ${asset.currentPrice}`, `Binance: ${binancePrice}`];
-        asset.confidence = buildConfidence(deviation, 2);
-        asset.sourceLabel = 'CoinGecko + Binance';
+            asset.sourceDetails = [`CoinGecko: ${asset.currentPrice}`, `Binance: ${binancePrice}`];
+            asset.confidence = buildConfidence(deviation, 2);
+            asset.sourceLabel = 'CoinGecko + Binance';
+            asset.hasLivePrice = true;
       } catch (error: any) {
         asset.sourceDetails?.push(`Binance unavailable: ${error?.message ?? 'error'}`);
         asset.confidence = 45;
@@ -211,6 +212,7 @@ export async function fetchVnStockRadar(symbols: string[]): Promise<AssetSummary
         sourceDetails,
         confidence,
         raw: { tcbs: tcbsData?.raw, vndirect: vndirectData },
+            hasLivePrice: !!(tcbsData || vndirectData),
         score: 0,
       };
 
