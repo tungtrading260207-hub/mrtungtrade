@@ -12,6 +12,7 @@ function calculatePnL(record: TradeRecord) {
 export default function HistoryPage() {
   const history = useAppStore((state) => state.history);
   const importHistory = useAppStore((state) => state.importHistory);
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
   const [importError, setImportError] = useState('');
 
   const totalProfit = useMemo(
@@ -53,6 +54,9 @@ export default function HistoryPage() {
           <div className="card" style={{ padding: '18px' }}>
             <div className="card-title">
               <span>Import / Export</span>
+              <button className="secondary-button" type="button" onClick={() => setActiveTab('calc')}>
+                Thêm vị thế mới
+              </button>
             </div>
             <div className="input-group">
               <label>

@@ -1,5 +1,7 @@
+import { useMemo, useState } from 'react';
 import useAppStore from '../../store/useAppStore';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
+import { AssetSummary } from '../../types';
 
 function signalLabel(score: number) {
   if (score >= 70) return 'KÈO VÀNG';
@@ -42,10 +44,83 @@ export default function DashboardPage() {
   const radarAssets = useAppStore((state) => state.radarAssets);
   const selectedAssetId = useAppStore((state) => state.selectedAssetId);
   const selectAsset = useAppStore((state) => state.selectAsset);
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
+  const addCustomAsset = useAppStore((state) => state.addCustomAsset);
+  const watchlistSymbols = useAppStore((state) => state.watchlistSymbols);
+  const addWatchlistSymbol = useAppStore((state) => state.addWatchlistSymbol);
+  const removeWatchlistSymbol = useAppStore((state) => state.removeWatchlistSymbol);
+
+  const [manualSymbol, setManualSymbol] = useState('');
+  const [searchMessage, setSearchMessage] = useState('');
+  const [searchedAsset, setSearchedAsset] = useState<AssetSummary | null>(null);
+
+  const inferType = (symbol: string) => {
+    const normalized = symbol.trim().toUpperCase();
+    if (normalized.endsWith('USDT') || normalized.endsWith('BTC') || normalized.endsWith('ETH') || normalized.endsWith('BNB') || normalized.endsWith('SOL') || normalized.endsWith('XRP') || normalized.endsWith('ADA') || normalized.endsWith('DOGE')) {
+      return 'crypto' as const;
+    }
+    if (normalized.length <= 5 && /^[A-Z]{2,5}$/.test(normalized)) {
+      return 'vn-stock' as const;
+    }
+    return 'crypto' as const;
+  };
+
+  const normalizedSymbol = manualSymbol.trim().toUpperCase();
+  const matchedAsset = useMemo(
+    () => radarAssets.find((asset) => asset.symbol.toUpperCase() === normalizedSymbol || asset.id.toUpperCase() === normalizedSymbol),
+    [normalizedSymbol, radarAssets],
+  );
 
   const cryptoAssets = radarAssets.filter((asset) => asset.type === 'crypto').slice(0, 6);
   const vnAssets = radarAssets.filter((asset) => asset.type === 'vn-stock').slice(0, 6);
   const highlightAssets = radarAssets.slice(0, 3);
+
+  const handleSymbolSearch = () => {
+    const symbol = normalizedSymbol;
+    setSearchMessage('');
+    setSearchedAsset(null);
+    if (!symbol) {
+      setSearchMessage('Nhập mã cần tìm kiếm để bắt đầu.');
+      return;
+    }
+    if (matchedAsset) {
+      setSearchedAsset(matchedAsset);
+      selectAsset(matchedAsset.id);
+      setActiveTab('analysis');
+      setSearchMessage(`Đã tìm thấy ${matchedAsset.symbol}. Chuyển sang phân tích chi tiết.`);
+      return;
+    }
+
+    const inferredType = inferType(symbol);
+    const customAsset: AssetSummary = {
+      id: symbol,
+      symbol,
+      name: symbol,
+      type: inferredType,
+      currentPrice: 0,
+      priceChange24h: 0,
+      lastUpdated: new Date().toISOString(),
+      sourceLabel: 'Manual Input',
+      sourceDetails: [`Tự nhập - phân loại ${inferredType}`],
+      confidence: 30,
+      raw: { manual: true },
+      score: 15,
+    };
+    addCustomAsset(customAsset);
+    setSearchedAsset(customAsset);
+    selectAsset(customAsset.id);
+    setActiveTab('analysis');
+    setSearchMessage(`Đã tự động nhận diện ${symbol} là ${inferredType}. Chuyển sang phân tích chi tiết.`);
+  };
+
+  const handleAddWatchlist = () => {
+    if (!searchedAsset) {
+      setSearchMessage('Vui lòng tìm mã trước khi thêm vào watchlist.');
+      return;
+    }
+    addWatchlistSymbol(searchedAsset.symbol);
+    setSearchMessage(`Đã thêm ${searchedAsset.symbol} vào watchlist.`);
+  };
 
   return (
     <section className="page-section">
@@ -81,6 +156,81 @@ export default function DashboardPage() {
               </div>
             </button>
           ))}
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">
+          <span>Tìm mã và thêm vào watchlist</span>
+          <span>Nhập mã để theo dõi</span>
+        </div>
+        <div className="input-group" style={{ gridTemplateColumns: '1fr auto auto', display: 'grid', gap: 12, alignItems: 'end' }}>
+          <input
+            value={manualSymbol}
+            onChange={(e) => setManualSymbol(e.target.value)}
+            placeholder="Nhập mã (VD: SSI, VCB, BTC)"
+          />
+          <button type="button" className="primary" onClick={handleSymbolSearch}>Tìm mã</button>
+          <button type="button" className="secondary-button" onClick={handleAddWatchlist} disabled={!searchedAsset}>Theo dõi</button>
+        </div>
+        {searchMessage && <div className="muted-text" style={{ marginTop: 12 }}>{searchMessage}</div>}
+        {searchedAsset && (
+          <div style={{ display: 'grid', gap: 12, marginTop: 14 }}>
+            <div className="asset-meta" style={{ gap: 10 }}>
+              <span>{searchedAsset.symbol} — {searchedAsset.name}</span>
+              <span>{searchedAsset.sourceLabel}</span>
+              <span>{searchedAsset.confidence ? `Confidence ${searchedAsset.confidence}%` : 'Độ tin cậy chưa xác thực'}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <button type="button" className="primary" onClick={() => { selectAsset(searchedAsset.id); setActiveTab('analysis'); }}>
+                Xem phân tích
+              </button>
+              <button type="button" className="secondary-button" onClick={() => { selectAsset(searchedAsset.id); setActiveTab('calc'); }}>
+                Nhập vị thế
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="card">
+        <div className="card-title">
+          <span>Watchlist của bạn</span>
+          <span>Quản lý mã theo dõi</span>
+        </div>
+        <div className="card-list">
+          {watchlistSymbols.length > 0 ? (
+            watchlistSymbols.map((symbol) => {
+              const watchAsset = radarAssets.find((asset) => asset.symbol.toUpperCase() === symbol || asset.id.toUpperCase() === symbol);
+              return (
+                <div key={symbol} className="asset-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <strong>{symbol}</strong>
+                    <div className="muted-text" style={{ fontSize: 12 }}>
+                      {watchAsset ? `${watchAsset.type === 'crypto' ? 'Crypto' : 'VN Stock'} • ${watchAsset.sourceLabel}` : 'Chưa có dữ liệu kèm theo'}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    {watchAsset && (
+                      <button
+                        type="button"
+                        className="secondary-button"
+                        onClick={() => {
+                          selectAsset(watchAsset.id);
+                          setActiveTab('analysis');
+                        }}
+                      >
+                        Phân tích
+                      </button>
+                    )}
+                    <button type="button" className="secondary-button" onClick={() => removeWatchlistSymbol(symbol)}>Xóa</button>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="muted-text">Chưa có mã watchlist. Thêm mã bằng cách nhập ở trên.</div>
+          )}
         </div>
       </div>
 
