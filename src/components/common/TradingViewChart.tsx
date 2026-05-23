@@ -2,14 +2,16 @@ import { useEffect, useRef } from 'react';
 
 interface TradingViewChartProps {
   symbol: string;
-  type: 'crypto' | 'stock';
+  type: string; // accept 'crypto', 'vn-stock', 'stock' etc.
 }
 
-const getTradingViewSymbol = (symbol: string, type: 'crypto' | 'stock') => {
+const getTradingViewSymbol = (symbol: string, type: string) => {
   if (type === 'crypto') {
     return `BINANCE:${symbol}USDT`;
   }
-  if (symbol.length > 1) {
+  // For VN stocks map to HOSE/ HNX heuristics
+  if (type === 'vn-stock' || type === 'stock') {
+    // TradingView may use HOSE or HNX prefixes; default to HOSE
     return `HOSE:${symbol}`;
   }
   return symbol;
@@ -23,7 +25,7 @@ export default function TradingViewChart({ symbol, type }: TradingViewChartProps
     widgetScript.src = 'https://s3.tradingview.com/tv.js';
     widgetScript.async = true;
     widgetScript.onload = () => {
-      if (window && (window as any).TradingView && chartRef.current) {
+      if (typeof (window as any) !== 'undefined' && (window as any).TradingView && chartRef.current) {
         new (window as any).TradingView.widget({
           container_id: chartRef.current.id,
           autosize: true,
@@ -39,8 +41,7 @@ export default function TradingViewChart({ symbol, type }: TradingViewChartProps
           hide_side_toolbar: false,
           details: true,
           hotlist: true,
-          calendar: true,
-          container_id: chartRef.current.id,
+          calendar: true
         });
       }
     };

@@ -8,8 +8,8 @@
   --card-soft: rgba(22, 31, 52, 0.95);
   --text-primary: #f3f3f3;
   --text-secondary: #8d9bb3;
-  --accent: #c9b873;
-  --accent-soft: rgba(201, 184, 115, 0.16);
+  --accent: #b38a2e; /* subdued gold */
+  --accent-soft: rgba(179, 138, 46, 0.12);
   --border: rgba(255, 255, 255, 0.06);
 }
 

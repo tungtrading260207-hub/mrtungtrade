@@ -19,6 +19,8 @@ export interface AssetSummary {
   sparkline7d?: number[];
   lastUpdated: string;
   sourceLabel: string;
+  sourceDetails?: string[];
+  confidence?: number;
   raw?: Record<string, unknown>;
   score: number;
 }

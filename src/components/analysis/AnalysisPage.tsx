@@ -3,7 +3,14 @@ import TradingViewChart from '../common/TradingViewChart';
 import { formatCurrency, formatDateTime, formatPercent } from '../../utils/formatters';
 
 function signalColor(signal: string) {
-  if (signal === 'KÈO VÀNG') return '#c9b873';
+  if (typeof window === 'undefined') {
+    if (signal === 'KÈO VÀNG') return '#b38a2e';
+    if (signal === 'CHỜ KÍCH NỔ') return '#72d6ff';
+    return '#94a3b8';
+  }
+  const root = getComputedStyle(document.documentElement);
+  const accent = root.getPropertyValue('--accent') || '#b38a2e';
+  if (signal === 'KÈO VÀNG') return accent.trim();
   if (signal === 'CHỜ KÍCH NỔ') return '#72d6ff';
   return '#94a3b8';
 }
@@ -54,12 +61,12 @@ export default function AnalysisPage() {
                 <span className="badge">{analysis.score} điểm</span>
               </div>
               <div className="asset-meta" style={{ gap: '10px' }}>
-                <span>Giá hiện tại: {formatCurrency(asset.currentPrice, asset.type === 'crypto' ? 'USD' : 'VND')}</span>
+                <span>Giá hiện tại: {asset.currentPrice ? formatCurrency(asset.currentPrice, asset.type === 'crypto' ? 'USD' : 'VND') : 'Không có dữ liệu'}</span>
                 <span>Biến động 24h: {formatPercent(asset.priceChange24h)}</span>
                 <span>Biến động 7d: {asset.priceChange7d !== undefined ? formatPercent(asset.priceChange7d) : 'Chưa có'}</span>
                 <span>Vốn hóa: {asset.marketCap ? formatCurrency(asset.marketCap, 'USD') : 'Không có dữ liệu'}</span>
-                <span>Market cap rank: {asset.marketCapRank ?? 'n/a'}</span>
-                <span>Source: {asset.sourceLabel}</span>
+                <span>Confidence: {asset.confidence ?? 'N/A'}%</span>
+                <span>Sources: {asset.sourceLabel}</span>
                 <span>Cập nhật: {formatDateTime(asset.lastUpdated)}</span>
               </div>
             </div>
@@ -78,6 +85,16 @@ export default function AnalysisPage() {
             </div>
           </div>
 
+          <div className="card" style={{ marginTop: 16, padding: '18px' }}>
+            <div className="card-title">
+              <span>Nguồn kiểm tra chéo</span>
+            </div>
+            <div className="asset-meta" style={{ display: 'grid', gap: 8, fontSize: 13, color: '#94a3b8' }}>
+              {asset.sourceDetails?.map((detail, index) => (
+                <span key={index}>{detail}</span>
+              ))}
+            </div>
+          </div>
           <div className="card" style={{ marginTop: 16, padding: '18px' }}>
             <div className="card-title">
               <span>10 bước phân tích</span>

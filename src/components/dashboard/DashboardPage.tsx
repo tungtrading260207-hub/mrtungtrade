@@ -28,9 +28,9 @@ export default function DashboardPage() {
           <div className="asset-meta" style={{ display: 'grid', gap: 10 }}>
             <span>Crypto: {cryptoCount}</span>
             <span>VN Stock: {vnCount}</span>
-            <span>Top 1: {bestAsset ? `${bestAsset.symbol} (${bestAsset.sourceLabel})` : 'Đang tải'}</span>
+            <span>Top 1: {bestAsset ? `${bestAsset.symbol} - ${signalLabel(bestAsset.score)}` : 'Đang tải'}</span>
             <span>Điểm cao nhất: {bestAsset ? bestAsset.score : '-'}</span>
-            <span>Giá trị tham chiếu: {bestAsset ? formatCurrency(bestAsset.currentPrice, bestAsset.type === 'crypto' ? 'USD' : 'VND') : '-'}</span>
+            <span>Độ tin cậy: {bestAsset?.confidence ? `${bestAsset.confidence}%` : 'Chưa có'}</span>
           </div>
         </div>
 
@@ -81,7 +81,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="asset-meta">
                   <span>{asset.sourceLabel}</span>
-                  <span>{asset.marketCap ? formatCurrency(asset.marketCap, 'USD') : 'N/A'}</span>
+                  <span>{asset.confidence ? `Tin cậy ${asset.confidence}%` : 'Độ tin cậy chưa rõ'}</span>
                 </div>
               </div>
               <div className="asset-value">
