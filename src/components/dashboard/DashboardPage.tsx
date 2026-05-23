@@ -4,14 +4,16 @@ import { AssetSummary } from '../../types';
 import { fetchLiveAssetSummary } from '../../data/api';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
 
-const categoryTags = [
-  'Kèo Vàng (8)',
-  'Crypto (Binance)',
-  'Chứng khoán VN',
-  'Đang tích lũy (15)',
-  'Kèo Siêu Bùng Nổ',
-  'Kèo Nghịch Đảo (0)',
-];
+const categoryDefinitions = [
+  { id: 'gold', label: 'Kèo Vàng' },
+  { id: 'crypto', label: 'Crypto (Binance)' },
+  { id: 'vn', label: 'Chứng khoán VN' },
+  { id: 'accumulate', label: 'Đang tích lũy' },
+  { id: 'super', label: 'Kèo Siêu Bùng Nổ' },
+  { id: 'reverse', label: 'Kèo Nghịch Đảo' },
+] as const;
+
+type CategoryId = typeof categoryDefinitions[number]['id'];
 
 export default function DashboardPage() {
   const radarAssets = useAppStore((state) => state.radarAssets);
@@ -26,6 +28,7 @@ export default function DashboardPage() {
   const [manualSymbol, setManualSymbol] = useState('');
   const [searchMessage, setSearchMessage] = useState('');
   const [searchedAsset, setSearchedAsset] = useState<AssetSummary | null>(null);
+  const [activeCategory, setActiveCategory] = useState<CategoryId>('gold');
 
   const inferType = (symbol: string) => {
     const normalized = symbol.trim().toUpperCase();
@@ -44,13 +47,38 @@ export default function DashboardPage() {
     [normalizedSymbol, radarAssets],
   );
 
-  const topAssets = useMemo(
-    () => radarAssets
-      .slice()
-      .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-      .slice(0, 6),
-    [radarAssets],
-  );
+  const filteredGroups = useMemo(() => {
+    const gold = radarAssets.filter((asset) => (asset.score ?? 0) >= 70);
+    const crypto = radarAssets.filter((asset) => asset.type === 'crypto');
+    const vn = radarAssets.filter((asset) => asset.type === 'vn-stock');
+    const accumulation = radarAssets.filter((asset) => {
+      const change = Math.abs(asset.priceChange24h ?? 0);
+      return change <= 1.8 && (asset.score ?? 0) < 70;
+    });
+    const superBoom = radarAssets.filter((asset) => (asset.priceChange24h ?? 0) >= 5 || (asset.score ?? 0) >= 85);
+    const reverse = radarAssets.filter((asset) => (asset.priceChange24h ?? 0) < 0);
+
+    return {
+      gold,
+      crypto,
+      vn,
+      accumulate: accumulation,
+      super: superBoom,
+      reverse,
+    } as const;
+  }, [radarAssets]);
+
+  const activeAssets = filteredGroups[activeCategory].slice(0, 6);
+
+  const categoryButtons = categoryDefinitions.map((category) => {
+    const count = filteredGroups[category.id].length;
+    return {
+      ...category,
+      label: category.id === 'gold' || category.id === 'super' || category.id === 'reverse'
+        ? `${category.label} (${count})`
+        : category.label,
+    };
+  });
 
   const handleSymbolSearch = async () => {
     const symbol = normalizedSymbol;
@@ -131,66 +159,78 @@ export default function DashboardPage() {
 
   return (
     <section className="page-section">
-      <div className="dashboard-summary-card card">
-        <div>
-          <div className="card-title">
-            <span>Dividend Strategy · Gap Fill</span>
-            <span className="badge">Hiện 5 mã</span>
-          </div>
-          <p className="section-subtitle">Chiến thuật săn cổ tức & tối ưu vòng quay vốn qua lịch sử lấp Gap.</p>
-        </div>
-        <div className="dashboard-summary-actions">
-          <button type="button" className="primary" onClick={() => setActiveTab('radar')}>
-            Quét lại ngay
-          </button>
-        </div>
-      </div>
-
       <div className="dashboard-category-row">
-        {categoryTags.map((label) => (
-          <button key={label} type="button" className="secondary-button">
-            {label}
+        {categoryButtons.map((category) => (
+          <button
+            key={category.id}
+            type="button"
+            className={`category-pill ${activeCategory === category.id ? 'active' : ''}`}
+            onClick={() => setActiveCategory(category.id)}
+          >
+            {category.label}
           </button>
         ))}
       </div>
 
       <div className="signal-card-grid">
-        {topAssets.map((asset) => {
-          const performance = asset.priceChange24h ?? 0;
-          const power = Math.max(0, Math.min(10, Math.round((asset.score ?? 0) / 10)));
-          const gainValue = asset.priceChange24h ? Math.round(asset.priceChange24h * 1.2) : 0;
-          const trend = asset.score >= 70 ? 'KÈO VÀNG' : 'TÍN HIỆU';
+        {activeAssets.map((asset) => {
+          const price = asset.currentPrice ?? 0;
+          const change = asset.priceChange24h ?? 0;
+          const signalLabel = asset.score >= 70 ? 'KÈO VÀNG' : 'WATCH';
+          const power = Math.max(1, Math.min(10, Math.round((asset.score ?? 0) / 10)));
+          const increase = Math.max(0, Math.round(change * 1.2));
+          const scoreDisplay = asset.score ?? 0;
+          const isWatched = watchlistSymbols.includes(asset.symbol.toUpperCase());
+
           return (
-            <article key={asset.id} className="signal-card">
-              <div className="signal-card-header">
-                <span className="signal-card-label">{asset.type === 'crypto' ? 'CRYPTO' : 'STOCK'}</span>
-                <span className="signal-pill">{trend}</span>
+            <article key={asset.id} className="asset-card">
+              <div className="asset-card-header">
+                <div>
+                  <div className="asset-title-row">
+                    <strong>{asset.symbol}</strong>
+                    <span className="asset-type">{asset.type === 'crypto' ? 'CRYPTO' : 'STOCK'}</span>
+                  </div>
+                  <div className="asset-tagline">{asset.type === 'crypto' ? 'SUPER-PUMP HUNTER' : 'DIVIDEND STRIKE'}</div>
+                </div>
+                <span className={`asset-card-tag ${signalLabel === 'KÈO VÀNG' ? 'asset-card-tag-gold' : ''}`}>{signalLabel}</span>
               </div>
-              <div className="signal-card-title">{asset.symbol}</div>
-              <div className="signal-card-subtitle">DIVIDEND STRIKE</div>
-              <div className="signal-card-price">
-                <strong>{formatCurrency(asset.currentPrice ?? 0, asset.type === 'crypto' ? 'USD' : 'VND')}</strong>
-                <span className={performance >= 0 ? 'text-success' : 'text-danger'}>{formatPercent(performance)}</span>
+
+              <div className="asset-price-row">
+                <span className="asset-price">{formatCurrency(price, asset.type === 'crypto' ? 'USD' : 'VND')}</span>
+                <span className={change >= 0 ? 'text-success' : 'text-danger'}>{formatPercent(change)}</span>
               </div>
-              <div className="signal-score-row">
-                <div className="signal-score-circle">{asset.score ?? 0}</div>
-                <div className="signal-card-meta">
-                  <span>Tăng {gainValue}</span>
-                  <span>Tiền {power}</span>
-                  <span>TS {Math.min(10, power)}</span>
+
+              <div className="score-row">
+                <div className="score-circle">{scoreDisplay}</div>
+                <div className="metric-row">
+                  <div className="metric-block">
+                    <span>Tăng</span>
+                    <strong>{increase}</strong>
+                  </div>
+                  <div className="metric-block">
+                    <span>Tiền</span>
+                    <strong>{power}</strong>
+                  </div>
+                  <div className="metric-block">
+                    <span>TS</span>
+                    <strong>{power}</strong>
+                  </div>
                 </div>
               </div>
-              <div className="signal-card-footer">
-                <div className="metric-pill">RANGE</div>
-                <div className="metric-pill">FVG</div>
-                <div className="metric-pill">RSI 60</div>
-                <div className="metric-pill">W3</div>
-                <div className="metric-pill">VWAP</div>
+
+              <div className="tag-row">
+                <span className="tag-chip">RANGE</span>
+                <span className="tag-chip">FVG</span>
+                <span className="tag-chip">RSI 60</span>
+                <span className="tag-chip">W3</span>
+                <span className="tag-chip">VWAP</span>
               </div>
-              <div className="signal-card-notice">
-                <strong>MrTung Brain</strong> · Mã {asset.symbol} đạt {Math.min(10, Math.round((asset.score ?? 0) / 10))}/10 điểm DNA.
+
+              <div className="notice-line">
+                <strong>MrTung Brain</strong> · Mã {asset.symbol} đạt {Math.min(10, Math.round(scoreDisplay / 10))}/10 điểm DNA.
               </div>
-              <div className="signal-card-actions">
+
+              <div className="action-row">
                 <button
                   type="button"
                   className="primary"
@@ -201,7 +241,29 @@ export default function DashboardPage() {
                 >
                   Phân tích
                 </button>
-                <button type="button" className="secondary-button">🔔</button>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => {
+                    selectAsset(asset.id);
+                    setActiveTab('calc');
+                  }}
+                >
+                  🧮
+                </button>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => {
+                    if (isWatched) {
+                      removeWatchlistSymbol(asset.symbol);
+                    } else {
+                      addWatchlistSymbol(asset.symbol);
+                    }
+                  }}
+                >
+                  {isWatched ? 'Đã theo dõi' : '🔔'}
+                </button>
               </div>
             </article>
           );
@@ -210,50 +272,19 @@ export default function DashboardPage() {
 
       <div className="card">
         <div className="card-title">
-          <span>Your watchlist</span>
-          <span>Manage tracked symbols</span>
+          <span>Search symbol</span>
+          <span>Add to watchlist</span>
         </div>
-        <div className="card-list">
-          {watchlistSymbols.length > 0 ? (
-            watchlistSymbols.map((symbol) => {
-              const watchAsset = radarAssets.find((asset) => asset.symbol.toUpperCase() === symbol || asset.id.toUpperCase() === symbol);
-              return (
-                <div key={symbol} className="asset-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <strong>{symbol}</strong>
-                    <div className="asset-meta" style={{ gap: 8, marginTop: 6 }}>
-                      <span style={{ fontSize: 12, color: '#94a3b8' }}>
-                        {watchAsset ? (watchAsset.type === 'crypto' ? 'Crypto' : 'VN Stock') : 'No additional data'}
-                      </span>
-                      {watchAsset && (
-                        <span className={`confidence-badge ${watchAsset.confidence && watchAsset.confidence >= 70 ? 'gold' : ''}`} data-tooltip={watchAsset.sourceDetails?.join(' | ')}>
-                          {watchAsset.confidence ? `${watchAsset.confidence}%` : 'N/A'}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                    {watchAsset && (
-                      <button
-                        type="button"
-                        className="secondary-button"
-                        onClick={() => {
-                          selectAsset(watchAsset.id);
-                          setActiveTab('analysis');
-                        }}
-                      >
-                        Analyze
-                      </button>
-                    )}
-                    <button type="button" className="secondary-button" onClick={() => removeWatchlistSymbol(symbol)}>Remove</button>
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <div className="muted-text">No watchlist symbols yet. Add one above.</div>
-          )}
+        <div className="input-group" style={{ gridTemplateColumns: '1fr auto auto', display: 'grid', gap: 12, alignItems: 'end' }}>
+          <input
+            value={manualSymbol}
+            onChange={(e) => setManualSymbol(e.target.value)}
+            placeholder="Type symbol, e.g. SSI, VCB, BTC"
+          />
+          <button type="button" className="primary" onClick={handleSymbolSearch}>Search</button>
+          <button type="button" className="secondary-button" onClick={handleAddWatchlist} disabled={!searchedAsset}>Watch</button>
         </div>
+        {searchMessage && <div className="muted-text" style={{ marginTop: 12 }}>{searchMessage}</div>}
       </div>
     </section>
   );
