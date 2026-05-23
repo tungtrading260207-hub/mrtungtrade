@@ -21,6 +21,7 @@ export interface AssetSummary {
   sourceLabel: string;
   sourceDetails?: string[];
   confidence?: number;
+  hasLivePrice?: boolean;
   raw?: Record<string, unknown>;
   score: number;
 }

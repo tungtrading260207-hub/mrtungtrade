@@ -48,6 +48,11 @@ export default function AnalysisPage() {
             {analysis.signal}
           </div>
         </div>
+        {!asset.hasLivePrice && (
+          <div className="card" style={{ background: 'rgba(234, 79, 49, 0.08)', border: '1px solid rgba(234, 79, 49, 0.18)', marginBottom: 16, padding: 14 }}>
+            <strong style={{ color: '#d45f4d' }}>Lưu ý:</strong> Mã này chưa có giá realtime. Phân tích chỉ mang tính tham khảo và cần xác thực giá thực trước khi vào lệnh.
+          </div>
+        )}
 
         <div style={{ display: 'grid', gap: 16 }}>
           <div className="card" style={{ padding: '16px' }}>

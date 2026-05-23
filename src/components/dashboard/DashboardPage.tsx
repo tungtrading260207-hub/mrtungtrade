@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import useAppStore from '../../store/useAppStore';
 import { formatCurrency, formatPercent } from '../../utils/formatters';
 import { AssetSummary } from '../../types';
+import { fetchLiveAssetSummary } from '../../data/api';
 
 function signalLabel(score: number) {
   if (score >= 70) return 'KÈO VÀNG';
@@ -49,10 +50,14 @@ export default function DashboardPage() {
   const watchlistSymbols = useAppStore((state) => state.watchlistSymbols);
   const addWatchlistSymbol = useAppStore((state) => state.addWatchlistSymbol);
   const removeWatchlistSymbol = useAppStore((state) => state.removeWatchlistSymbol);
+  const news = useAppStore((state) => state.news);
 
   const [manualSymbol, setManualSymbol] = useState('');
   const [searchMessage, setSearchMessage] = useState('');
   const [searchedAsset, setSearchedAsset] = useState<AssetSummary | null>(null);
+  const cryptoSectionRef = useRef<HTMLDivElement>(null);
+  const vnSectionRef = useRef<HTMLDivElement>(null);
+  const newsSectionRef = useRef<HTMLDivElement>(null);
 
   const inferType = (symbol: string) => {
     const normalized = symbol.trim().toUpperCase();
@@ -65,6 +70,10 @@ export default function DashboardPage() {
     return 'crypto' as const;
   };
 
+  const scrollToRef = (ref: { current: HTMLDivElement | null }) => {
+    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const normalizedSymbol = manualSymbol.trim().toUpperCase();
   const matchedAsset = useMemo(
     () => radarAssets.find((asset) => asset.symbol.toUpperCase() === normalizedSymbol || asset.id.toUpperCase() === normalizedSymbol),
@@ -75,7 +84,7 @@ export default function DashboardPage() {
   const vnAssets = radarAssets.filter((asset) => asset.type === 'vn-stock').slice(0, 6);
   const highlightAssets = radarAssets.slice(0, 3);
 
-  const handleSymbolSearch = () => {
+  const handleSymbolSearch = async () => {
     const symbol = normalizedSymbol;
     setSearchMessage('');
     setSearchedAsset(null);
@@ -92,25 +101,55 @@ export default function DashboardPage() {
     }
 
     const inferredType = inferType(symbol);
-    const customAsset: AssetSummary = {
-      id: symbol,
-      symbol,
-      name: symbol,
-      type: inferredType,
-      currentPrice: 0,
-      priceChange24h: 0,
-      lastUpdated: new Date().toISOString(),
-      sourceLabel: 'Manual Input',
-      sourceDetails: [`Tự nhập - phân loại ${inferredType}`],
-      confidence: 30,
-      raw: { manual: true },
-      score: 15,
-    };
-    addCustomAsset(customAsset);
-    setSearchedAsset(customAsset);
-    selectAsset(customAsset.id);
-    setActiveTab('analysis');
-    setSearchMessage(`Đã tự động nhận diện ${symbol} là ${inferredType}. Chuyển sang phân tích chi tiết.`);
+    try {
+      const liveData = await fetchLiveAssetSummary(symbol, inferredType);
+      const customAsset: AssetSummary = {
+        id: symbol,
+        symbol,
+        name: symbol,
+        type: inferredType,
+        currentPrice: liveData.currentPrice,
+        priceChange24h: liveData.priceChange24h,
+        priceHigh24h: liveData.priceHigh24h,
+        priceLow24h: liveData.priceLow24h,
+        marketCap: liveData.marketCap,
+        volume24h: liveData.volume24h,
+        lastUpdated: new Date().toISOString(),
+        sourceLabel: liveData.sourceLabel,
+        sourceDetails: liveData.sourceDetails,
+        confidence: liveData.confidence,
+        raw: { manual: true },
+        hasLivePrice: true,
+        score: 0,
+      };
+      addCustomAsset({ ...customAsset, score: 0 });
+      setSearchedAsset(customAsset);
+      selectAsset(customAsset.id);
+      setActiveTab('analysis');
+      setSearchMessage(`Đã lấy giá realtime cho ${symbol} từ nguồn ${liveData.sourceLabel}.`);
+      return;
+    } catch (error: any) {
+      const customAsset: AssetSummary = {
+        id: symbol,
+        symbol,
+        name: symbol,
+        type: inferredType,
+        currentPrice: 0,
+        priceChange24h: 0,
+        lastUpdated: new Date().toISOString(),
+        sourceLabel: 'Manual Input',
+        sourceDetails: [`Chưa có giá realtime. Dữ liệu phân tích chỉ mang tính tham khảo.`, `Phân loại: ${inferredType}`],
+        confidence: 25,
+        raw: { manual: true },
+        hasLivePrice: false,
+        score: 10,
+      };
+      addCustomAsset(customAsset);
+      setSearchedAsset(customAsset);
+      selectAsset(customAsset.id);
+      setActiveTab('analysis');
+      setSearchMessage(`Không lấy được giá realtime cho ${symbol}. Phân tích chỉ mang tính tham khảo.`);
+    }
   };
 
   const handleAddWatchlist = () => {
@@ -161,6 +200,24 @@ export default function DashboardPage() {
 
       <div className="card">
         <div className="card-title">
+          <span>Điều hướng nhanh</span>
+          <span className="badge">Tới kèo & tin tức</span>
+        </div>
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <button type="button" className="primary" onClick={() => scrollToRef(cryptoSectionRef)}>
+            Kèo vàng Crypto
+          </button>
+          <button type="button" className="primary" onClick={() => scrollToRef(vnSectionRef)}>
+            Kèo vàng Chứng khoán
+          </button>
+          <button type="button" className="secondary-button" onClick={() => scrollToRef(newsSectionRef)}>
+            Bảng tin tức
+          </button>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">
           <span>Tìm mã và thêm vào watchlist</span>
           <span>Nhập mã để theo dõi</span>
         </div>
@@ -181,6 +238,11 @@ export default function DashboardPage() {
               <span>{searchedAsset.sourceLabel}</span>
               <span>{searchedAsset.confidence ? `Confidence ${searchedAsset.confidence}%` : 'Độ tin cậy chưa xác thực'}</span>
             </div>
+            {!searchedAsset.hasLivePrice && (
+              <div className="card" style={{ padding: '12px 14px', background: 'rgba(231, 76, 60, 0.08)', border: '1px solid rgba(231, 76, 60, 0.22)' }}>
+                <strong style={{ color: '#e55d4a' }}>Chú ý:</strong> Mã này chưa có giá realtime. Phân tích sẽ chỉ mang tính tham khảo, nên kiểm tra giá tại sàn chính thức trước khi vào lệnh.
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <button type="button" className="primary" onClick={() => { selectAsset(searchedAsset.id); setActiveTab('analysis'); }}>
                 Xem phân tích
@@ -235,8 +297,33 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid-2" style={{ gap: 18 }}>
-        <AssetTable title="Kèo Crypto" assets={cryptoAssets} />
-        <AssetTable title="Kèo Chứng khoán Việt" assets={vnAssets} />
+        <div ref={cryptoSectionRef}>
+          <AssetTable title="Kèo Crypto" assets={cryptoAssets} />
+        </div>
+        <div ref={vnSectionRef}>
+          <AssetTable title="Kèo Chứng khoán Việt" assets={vnAssets} />
+        </div>
+      </div>
+
+      <div ref={newsSectionRef} className="card">
+        <div className="card-title">
+          <span>Tin tức thị trường</span>
+          <span className="badge">Nguồn RSS & Tin tức</span>
+        </div>
+        <div className="card-list" style={{ gap: 10, maxHeight: 320, overflow: 'auto' }}>
+          {news.length > 0 ? (
+            news.slice(0, 8).map((item) => (
+              <a key={item.link} href={item.link} target="_blank" rel="noreferrer" className="news-link">
+                <div style={{ display: 'grid', gap: 6 }}>
+                  <strong style={{ fontSize: 14 }}>{item.title}</strong>
+                  <span style={{ color: '#94a3b8', fontSize: 12 }}>{item.pubDate}</span>
+                </div>
+              </a>
+            ))
+          ) : (
+            <div className="muted-text">Đang tải tin tức. Vui lòng refresh lại trang nếu không thấy nội dung.</div>
+          )}
+        </div>
       </div>
 
       <div className="card">

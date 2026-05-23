@@ -1,5 +1,5 @@
 import { proxyFetch } from '../utils/proxyFetch';
-import { AssetSummary } from '../types';
+import { AssetSummary, MarketType } from '../types';
 
 const COINGECKO_MARKETS =
   'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=14&page=1&sparkline=true&price_change_percentage=24h%2C7d';
@@ -219,6 +219,83 @@ export async function fetchVnStockRadar(symbols: string[]): Promise<AssetSummary
   );
 
   return results.sort((a, b) => b.score - a.score);
+}
+
+export async function fetchLiveAssetSummary(symbol: string, type: MarketType) {
+  const normalized = symbol.trim().toUpperCase();
+  const sourceDetails: string[] = [];
+  let currentPrice = 0;
+  let delta = 0;
+  let high: number | undefined;
+  let low: number | undefined;
+  let marketCap: number | undefined;
+  let volume24h: number | undefined;
+  let sourceLabel = 'Manual Input';
+  let confidence = 30;
+
+  if (type === 'crypto') {
+    const baseSymbol = normalized.endsWith('USDT') ? normalized.replace(/USDT$/, '') : normalized;
+    try {
+      const binanceData = await fetchBinanceTicker(`${baseSymbol}USDT`);
+      currentPrice = Number(binanceData.lastPrice ?? binanceData.prevClosePrice ?? binanceData.openPrice ?? 0);
+      delta = Number(binanceData.priceChangePercent ?? binanceData.priceChangePercent ?? 0);
+      high = Number(binanceData.highPrice ?? 0) || undefined;
+      low = Number(binanceData.lowPrice ?? 0) || undefined;
+      volume24h = Number(binanceData.quoteVolume ?? binanceData.volume ?? 0) || undefined;
+      sourceDetails.push(`Binance: ${currentPrice}`);
+      sourceLabel = 'Binance';
+      confidence = 70;
+    } catch (error: any) {
+      sourceDetails.push(`Binance unavailable: ${error?.message ?? 'error'}`);
+      throw new Error('Không lấy được giá crypto từ Binance');
+    }
+  } else {
+    let tcbsData: any = null;
+    let vndirectData: any = null;
+    try {
+      tcbsData = await fetchTcbsQuote(normalized);
+      sourceDetails.push(`TCBS: ${tcbsData.currentPrice}`);
+    } catch (error: any) {
+      sourceDetails.push(`TCBS error: ${error?.message ?? 'unknown'}`);
+    }
+    try {
+      vndirectData = await fetchVnDirectQuote(normalized);
+      sourceDetails.push(`VNDIRECT: ${vndirectData.currentPrice}`);
+    } catch (error: any) {
+      sourceDetails.push(`VNDIRECT error: ${error?.message ?? 'unknown'}`);
+    }
+
+    currentPrice = tcbsData?.currentPrice || vndirectData?.currentPrice || 0;
+    delta = tcbsData?.change ?? vndirectData?.change ?? 0;
+    high = tcbsData?.high ?? vndirectData?.high;
+    low = tcbsData?.low ?? vndirectData?.low;
+    marketCap = tcbsData?.marketCap ?? vndirectData?.marketCap;
+    volume24h = tcbsData?.volume24h ?? vndirectData?.volume24h;
+
+    if (tcbsData && vndirectData) {
+      const deviation = Math.abs(tcbsData.currentPrice - vndirectData.currentPrice) / Math.max(1, (tcbsData.currentPrice + vndirectData.currentPrice) / 2) * 100;
+      confidence = buildConfidence(deviation, 2);
+      sourceLabel = 'TCBS + VNDIRECT';
+    } else if (tcbsData || vndirectData) {
+      confidence = 60;
+      sourceLabel = tcbsData ? 'TCBS' : 'VNDIRECT';
+    } else {
+      confidence = 30;
+      throw new Error('Không lấy được giá VN Stock từ TCBS/VNDIRECT');
+    }
+  }
+
+  return {
+    currentPrice,
+    priceChange24h: delta,
+    priceHigh24h: high,
+    priceLow24h: low,
+    marketCap,
+    volume24h,
+    sourceLabel,
+    sourceDetails,
+    confidence,
+  };
 }
 
 async function fetchRss(url: string) {
