@@ -1,9 +1,10 @@
 import useAppStore from '../../store/useAppStore';
 import { formatDateTime } from '../../utils/formatters';
 
-type TabId = 'dashboard' | 'analysis' | 'calc' | 'history';
+type TabId = 'radar' | 'dashboard' | 'analysis' | 'calc' | 'history' | 'news';
 const navItems: Array<{ id: TabId; label: string }> = [
-  { id: 'dashboard', label: 'Dashboard' },
+  { id: 'radar', label: 'Radar' },
+  { id: 'news', label: 'News' },
   { id: 'analysis', label: 'Analysis' },
   { id: 'calc', label: 'Calculator' },
   { id: 'history', label: 'History' },

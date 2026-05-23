@@ -3,7 +3,7 @@ import { AssetAnalysis, AssetSummary, MarketType, TradeRecord } from '../types';
 import { fetchCryptoRadar, fetchNewsFeed, fetchVnStockRadar, fetchLiveAssetSummary } from '../data/api';
 
 interface AppState {
-  activeTab: 'dashboard' | 'analysis' | 'calc' | 'history';
+  activeTab: 'radar' | 'dashboard' | 'analysis' | 'calc' | 'history' | 'news';
   radarAssets: AssetSummary[];
   selectedAssetId: string | null;
   analysis: AssetAnalysis | null;
@@ -152,7 +152,7 @@ function buildAnalysisForAsset(asset: AssetSummary) {
 }
 
 const useAppStore = create<AppState>((set, get) => ({
-  activeTab: 'dashboard',
+  activeTab: 'radar',
   radarAssets: [],
   selectedAssetId: null,
   analysis: null,

@@ -8,8 +8,8 @@
   --card-soft: rgba(22, 31, 52, 0.95);
   --text-primary: #f3f3f3;
   --text-secondary: #8d9bb3;
-  --accent: #b38a2e; /* subdued gold */
-  --accent-soft: rgba(179, 138, 46, 0.12);
+  --accent: #ffd65a; /* brighter gold for stronger accent */
+  --accent-soft: rgba(255, 214, 90, 0.14);
   --border: rgba(255, 255, 255, 0.06);
 }
 
@@ -114,7 +114,7 @@ select {
 
 .top-toolbar .nav-button.active,
 .top-toolbar .nav-button:hover {
-  background: rgba(203, 171, 79, 0.14);
+  background: rgba(255, 214, 90, 0.14);
   color: var(--accent);
 }
 

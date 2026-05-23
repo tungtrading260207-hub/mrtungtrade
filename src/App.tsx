@@ -3,6 +3,8 @@ import useAppStore from './store/useAppStore';
 import Header from './components/layout/Header';
 import BottomNav from './components/layout/BottomNav';
 import DashboardPage from './components/dashboard/DashboardPage';
+import RadarPage from './components/radar/RadarPage';
+import NewsPage from './components/news/NewsPage';
 import AnalysisPage from './components/analysis/AnalysisPage';
 import CalcPage from './components/calc/CalcPage';
 import HistoryPage from './components/history/HistoryPage';
@@ -32,6 +34,8 @@ function App() {
           <div className="status-panel status-error">Lỗi: {error}</div>
         ) : (
           <>
+            {activeTab === 'radar' && <RadarPage />}
+            {activeTab === 'news' && <NewsPage />}
             {activeTab === 'dashboard' && <DashboardPage />}
             {activeTab === 'analysis' && <AnalysisPage />}
             {activeTab === 'calc' && <CalcPage />}
