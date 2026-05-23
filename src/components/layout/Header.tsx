@@ -1,60 +1,78 @@
 import useAppStore from '../../store/useAppStore';
 import { formatDateTime } from '../../utils/formatters';
 
-export default function Header() {
-  const news = useAppStore((state) => state.news);
-  const selected = useAppStore((state) => state.selectedAssetId);
-  const selectedAsset = useAppStore((state) => state.radarAssets.find((asset) => asset.id === selected));
-  const radarAssets = useAppStore((state) => state.radarAssets);
+type TabId = 'dashboard' | 'analysis' | 'calc' | 'history';
+const navItems: Array<{ id: TabId; label: string }> = [
+  { id: 'dashboard', label: 'Dashboard' },
+  { id: 'analysis', label: 'Analysis' },
+  { id: 'calc', label: 'Calculator' },
+  { id: 'history', label: 'History' },
+];
 
+export default function Header() {
+  const activeTab = useAppStore((state) => state.activeTab);
+  const setActiveTab = useAppStore((state) => state.setActiveTab);
+  const news = useAppStore((state) => state.news);
+  const radarAssets = useAppStore((state) => state.radarAssets);
   const topAsset = radarAssets[0];
   const cryptoCount = radarAssets.filter((asset) => asset.type === 'crypto').length;
   const vnCount = radarAssets.filter((asset) => asset.type === 'vn-stock').length;
+  const topConfidence = topAsset?.confidence ?? 0;
 
   return (
-    <header className="card" style={{ borderRadius: '0 0 28px 28px', margin: '0 18px 18px' }}>
-      <div className="card-title">
+    <header className="app-header">
+      <div className="header-top">
         <div>
-          <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.18em', color: '#94a3b8' }}>MrTungTrade | VIP Radar Cockpit</div>
-          <h1 style={{ margin: '10px 0 0', fontSize: 28 }}>Thị trường Tài chính cao cấp</h1>
+          <div className="label-hero">MrTungTrade • Aura Edition</div>
+          <h1>VIP Radar thị trường</h1>
+          <p className="hero-subtitle">Tách riêng crypto và chứng khoán Việt Nam. Focus vào kèo vàng, tín hiệu và độ tin cậy.</p>
         </div>
-        <div className="badge">Đồng bộ dữ liệu</div>
+        <div className="top-badges">
+          <span className="badge">{cryptoCount} Crypto</span>
+          <span className="badge">{vnCount} VN Stock</span>
+          <span className="badge">Top Confidence {topConfidence}%</span>
+        </div>
       </div>
 
-      <div className="grid-2" style={{ gap: '16px' }}>
-        <div className="card" style={{ padding: '20px' }}>
+      <div className="top-toolbar">
+        {navItems.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className={`nav-button ${activeTab === item.id ? 'active' : ''}`}
+            onClick={() => setActiveTab(item.id)}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="header-grid">
+        <div className="header-card">
           <div className="card-title">
-            <span>Đầu bài hôm nay</span>
-            <span style={{ fontSize: 12, color: '#8ea5c8' }}>{formatDateTime(new Date())} UTC+7</span>
+            <span>Thông tin nhanh</span>
+            <span className="badge">Cập nhật tức thì</span>
           </div>
-          <div style={{ display: 'grid', gap: 14 }}>
-            <div className="metric">
-              <strong>{topAsset?.symbol ?? '-'}</strong>
-              <span>{topAsset?.name ?? 'Chưa xác định'}</span>
-            </div>
-            <div className="metric">
-              <strong>{topAsset ? topAsset.currentPrice.toLocaleString('vi-VN', { maximumFractionDigits: 4 }) : '-'}</strong>
-              <span>{topAsset ? topAsset.sourceLabel : ''}</span>
-            </div>
-            <div className="asset-meta" style={{ display: 'grid', gap: 8 }}>
-              <span>Số mã Crypto: {cryptoCount}</span>
-              <span>Số mã VN Stock: {vnCount}</span>
-            </div>
+          <div className="asset-meta" style={{ gap: 12 }}>
+            <span>Top 1: {topAsset ? `${topAsset.symbol} (${topAsset.sourceLabel})` : 'Chưa có dữ liệu'}</span>
+            <span>Giá hiện tại: {topAsset ? topAsset.currentPrice.toLocaleString('vi-VN', { maximumFractionDigits: 2 }) : '-'}</span>
+            <span>Triển vọng: {topAsset ? `${topAsset.score} điểm` : '---'}</span>
+            <span>Confidence: {topAsset ? `${topAsset.confidence ?? 0}%` : '---'}</span>
           </div>
         </div>
 
-        <div className="card" style={{ padding: '20px' }}>
+        <div className="header-card">
           <div className="card-title">
-            <span>Tin tức & vĩ mô</span>
-            <span style={{ fontSize: 12, color: '#8ea5c8' }}>Nhiều nguồn RSS</span>
+            <span>Trend & tin tức</span>
+            <span className="badge">Multi-source</span>
           </div>
           <div className="card-list" style={{ gap: 10, maxHeight: 175, overflow: 'auto' }}>
             {news.slice(0, 4).map((item) => (
-              <a key={item.link} href={item.link} target="_blank" rel="noreferrer" style={{ color: '#d9e2ff', fontSize: 13, textDecoration: 'none' }}>
+              <a key={item.link} href={item.link} target="_blank" rel="noreferrer" className="news-link">
                 {item.title}
               </a>
             ))}
-            {news.length === 0 && <div style={{ color: '#8892b0' }}>Không có tin mới hoặc đang tải.</div>}
+            {news.length === 0 && <div className="muted-text">Đang tải tin tức, vui lòng đợi.</div>}
           </div>
         </div>
       </div>

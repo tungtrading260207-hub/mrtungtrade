@@ -7,62 +7,92 @@ function signalLabel(score: number) {
   return 'GIỮ VỊ THẾ';
 }
 
+function AssetTable({ title, assets }: { title: string; assets: Array<any> }) {
+  return (
+    <div className="card">
+      <div className="card-title">
+        <span>{title}</span>
+        <span>{assets.length} mục</span>
+      </div>
+      <div className="card-list">
+        {assets.map((asset, index) => (
+          <div key={asset.id} className="asset-row" style={{ padding: '14px 18px' }}>
+            <div>
+              <div className="asset-title" style={{ gap: 10 }}>
+                <strong>{index + 1}. {asset.symbol}</strong>
+                <span style={{ fontSize: 12, color: '#94a3b8' }}>{signalLabel(asset.score)}</span>
+              </div>
+              <div className="asset-meta" style={{ gap: 8 }}>
+                <span>{asset.sourceLabel}</span>
+                <span>{asset.confidence ? `Tin cậy ${asset.confidence}%` : 'Tin cậy chưa rõ'}</span>
+              </div>
+            </div>
+            <div className="asset-value" style={{ minWidth: 108, textAlign: 'right' }}>
+              <div style={{ fontSize: 18, fontWeight: 700 }}>{formatCurrency(asset.currentPrice, asset.type === 'crypto' ? 'USD' : 'VND')}</div>
+              <div className={asset.priceChange24h >= 0 ? 'text-success' : 'text-danger'}>{formatPercent(asset.priceChange24h)}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const radarAssets = useAppStore((state) => state.radarAssets);
   const selectedAssetId = useAppStore((state) => state.selectedAssetId);
   const selectAsset = useAppStore((state) => state.selectAsset);
 
-  const top10 = radarAssets.slice(0, 10);
-  const cryptoCount = radarAssets.filter((asset) => asset.type === 'crypto').length;
-  const vnCount = radarAssets.filter((asset) => asset.type === 'vn-stock').length;
-  const bestAsset = radarAssets[0];
+  const cryptoAssets = radarAssets.filter((asset) => asset.type === 'crypto').slice(0, 6);
+  const vnAssets = radarAssets.filter((asset) => asset.type === 'vn-stock').slice(0, 6);
+  const highlightAssets = radarAssets.slice(0, 3);
 
   return (
     <section className="page-section">
-      <div className="grid-2" style={{ marginBottom: 18 }}>
-        <div className="card">
-          <div className="card-title">
-            <span>VIP Radar Summary</span>
-            <span>{radarAssets.length} mã theo dõi</span>
-          </div>
-          <div className="asset-meta" style={{ display: 'grid', gap: 10 }}>
-            <span>Crypto: {cryptoCount}</span>
-            <span>VN Stock: {vnCount}</span>
-            <span>Top 1: {bestAsset ? `${bestAsset.symbol} - ${signalLabel(bestAsset.score)}` : 'Đang tải'}</span>
-            <span>Điểm cao nhất: {bestAsset ? bestAsset.score : '-'}</span>
-            <span>Độ tin cậy: {bestAsset?.confidence ? `${bestAsset.confidence}%` : 'Chưa có'}</span>
-          </div>
+      <div className="card" style={{ padding: 24, background: 'linear-gradient(135deg, rgba(28, 38, 62, 0.96), rgba(10, 11, 24, 0.9))', border: '1px solid rgba(203, 171, 79, 0.22)' }}>
+        <div className="card-title">
+          <span>Kèo vàng chọn lọc</span>
+          <span className="badge">Focus signal</span>
         </div>
-
-        <div className="card">
-          <div className="card-title">
-            <span>Top 10 theo tổng điểm</span>
-            <span>Độ tin cậy cao</span>
-          </div>
-          <div className="card-list">
-            {top10.map((asset, index) => (
-              <div key={asset.id} className="asset-row" style={{ display: 'grid', gridTemplateColumns: '1fr auto', padding: '16px' }}>
-                <div>
-                  <div className="asset-title" style={{ gap: 10 }}>
-                    <strong>{index + 1}. {asset.symbol}</strong>
-                    <span style={{ fontSize: 12, color: '#94a3b8' }}>{signalLabel(asset.score)}</span>
-                  </div>
-                  <div className="asset-meta" style={{ gap: 6 }}>
-                    <span>{asset.sourceLabel}</span>
-                    <span>{formatCurrency(asset.currentPrice, asset.type === 'crypto' ? 'USD' : 'VND')}</span>
+        <div className="card-list">
+          {highlightAssets.map((asset) => (
+            <button
+              key={asset.id}
+              type="button"
+              className={`asset-row ${selectedAssetId === asset.id ? 'active' : ''}`}
+              onClick={() => selectAsset(asset.id)}
+              style={{ padding: '18px' }}
+            >
+              <div>
+                <div className="asset-title">
+                  <div>
+                    <strong>{asset.symbol}</strong>
+                    <div style={{ color: '#94a3b8', fontSize: 13 }}>{asset.name}</div>
                   </div>
                 </div>
-                <div className="badge">{asset.score}</div>
+                <div className="asset-meta">
+                  <span>{asset.sourceLabel}</span>
+                  <span>{asset.confidence ? `Confidence ${asset.confidence}%` : 'Tin cậy chưa rõ'}</span>
+                </div>
               </div>
-            ))}
-          </div>
+              <div className="asset-value">
+                <div className={asset.priceChange24h >= 0 ? 'text-success' : 'text-danger'}>{formatPercent(asset.priceChange24h)}</div>
+                <div className="badge">{signalLabel(asset.score)}</div>
+              </div>
+            </button>
+          ))}
         </div>
+      </div>
+
+      <div className="grid-2" style={{ gap: 18 }}>
+        <AssetTable title="Kèo Crypto" assets={cryptoAssets} />
+        <AssetTable title="Kèo Chứng khoán Việt" assets={vnAssets} />
       </div>
 
       <div className="card">
         <div className="card-title">
-          <span>Danh sách cơ hội</span>
-          <span>Chạm để mở phân tích</span>
+          <span>Danh sách mở rộng</span>
+          <span>Chọn để xem phân tích</span>
         </div>
         <div className="card-list">
           {radarAssets.map((asset) => (
@@ -74,19 +104,16 @@ export default function DashboardPage() {
             >
               <div>
                 <div className="asset-title">
-                  <div>
-                    <strong>{asset.symbol}</strong>
-                    <div style={{ color: '#94a3b8', fontSize: 12 }}>{asset.name}</div>
-                  </div>
+                  <strong>{asset.symbol}</strong>
                 </div>
                 <div className="asset-meta">
+                  <span>{asset.type === 'crypto' ? 'Crypto' : 'VN Stock'}</span>
                   <span>{asset.sourceLabel}</span>
-                  <span>{asset.confidence ? `Tin cậy ${asset.confidence}%` : 'Độ tin cậy chưa rõ'}</span>
                 </div>
               </div>
               <div className="asset-value">
                 <div className={asset.priceChange24h >= 0 ? 'text-success' : 'text-danger'}>{formatPercent(asset.priceChange24h)}</div>
-                <div className="badge">{signalLabel(asset.score)}</div>
+                <div className="badge">{asset.score}</div>
               </div>
             </button>
           ))}
