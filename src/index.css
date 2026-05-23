@@ -182,6 +182,32 @@ select {
   align-items: baseline;
 }
 
+.top-line-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-height: 42px;
+}
+
+.performance-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.performance-chip.strong {
+  background: rgba(255, 214, 90, 0.14);
+  border-color: rgba(255, 214, 90, 0.18);
+  color: #f7e8a5;
+}
+
 /* Confidence badge and tooltip */
 .confidence-badge {
   display: inline-block;

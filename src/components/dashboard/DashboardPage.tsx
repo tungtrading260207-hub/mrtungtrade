@@ -12,7 +12,6 @@ export default function DashboardPage() {
   const addWatchlistSymbol = useAppStore((state) => state.addWatchlistSymbol);
   const removeWatchlistSymbol = useAppStore((state) => state.removeWatchlistSymbol);
   const refreshAssetPrice = useAppStore((state) => state.refreshAssetPrice);
-  const news = useAppStore((state) => state.news);
 
   const [manualSymbol, setManualSymbol] = useState('');
   const [searchMessage, setSearchMessage] = useState('');
@@ -33,6 +32,22 @@ export default function DashboardPage() {
   const matchedAsset = useMemo(
     () => radarAssets.find((asset) => asset.symbol.toUpperCase() === normalizedSymbol || asset.id.toUpperCase() === normalizedSymbol),
     [normalizedSymbol, radarAssets],
+  );
+
+  const topCryptoGainers = useMemo(
+    () => radarAssets
+      .filter((asset) => asset.type === 'crypto' && asset.priceChange24h !== undefined)
+      .sort((a, b) => (b.priceChange24h ?? 0) - (a.priceChange24h ?? 0))
+      .slice(0, 6),
+    [radarAssets],
+  );
+
+  const topVnStockGainers = useMemo(
+    () => radarAssets
+      .filter((asset) => asset.type === 'vn-stock' && asset.priceChange24h !== undefined)
+      .sort((a, b) => (b.priceChange24h ?? 0) - (a.priceChange24h ?? 0))
+      .slice(0, 6),
+    [radarAssets],
   );
 
   const handleSymbolSearch = async () => {
@@ -231,21 +246,36 @@ export default function DashboardPage() {
 
       <div className="card">
         <div className="card-title">
-          <span>Market news</span>
-          <span className="badge">RSS and headlines</span>
+          <span>Top crypto tăng mạnh</span>
+          <span className="badge">One-line view</span>
         </div>
-        <div className="card-list" style={{ gap: 10, maxHeight: 320, overflow: 'auto' }}>
-          {news.length > 0 ? (
-            news.slice(0, 8).map((item) => (
-              <a key={item.link} href={item.link} target="_blank" rel="noreferrer" className="news-link">
-                <div style={{ display: 'grid', gap: 6 }}>
-                  <strong style={{ fontSize: 14 }}>{item.title}</strong>
-                  <span style={{ color: '#94a3b8', fontSize: 12 }}>{item.pubDate}</span>
-                </div>
-              </a>
+        <div className="top-line-row">
+          {topCryptoGainers.length > 0 ? (
+            topCryptoGainers.map((asset) => (
+              <span key={asset.id} className={`performance-chip ${asset.priceChange24h && asset.priceChange24h >= 5 ? 'strong' : ''}`}>
+                {asset.symbol} {asset.priceChange24h >= 0 ? '+' : ''}{asset.priceChange24h?.toFixed(1)}%
+              </span>
             ))
           ) : (
-            <div className="muted-text">Loading news... refresh if no content appears.</div>
+            <div className="muted-text">Không có mã crypto tăng mạnh.</div>
+          )}
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">
+          <span>Top chứng khoán Việt dẫn đầu</span>
+          <span className="badge">One-line view</span>
+        </div>
+        <div className="top-line-row">
+          {topVnStockGainers.length > 0 ? (
+            topVnStockGainers.map((asset) => (
+              <span key={asset.id} className={`performance-chip ${asset.priceChange24h && asset.priceChange24h >= 3 ? 'strong' : ''}`}>
+                {asset.symbol} {asset.priceChange24h >= 0 ? '+' : ''}{asset.priceChange24h?.toFixed(1)}%
+              </span>
+            ))
+          ) : (
+            <div className="muted-text">Không có mã chứng khoán Việt tăng mạnh.</div>
           )}
         </div>
       </div>
