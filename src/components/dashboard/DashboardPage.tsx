@@ -32,7 +32,16 @@ export default function DashboardPage() {
 
   const inferType = (symbol: string) => {
     const normalized = symbol.trim().toUpperCase();
-    if (normalized.endsWith('USDT') || normalized.endsWith('BTC') || normalized.endsWith('ETH') || normalized.endsWith('BNB') || normalized.endsWith('SOL') || normalized.endsWith('XRP') || normalized.endsWith('ADA') || normalized.endsWith('DOGE')) {
+    if (
+      normalized.endsWith('USDT') ||
+      normalized.endsWith('BTC') ||
+      normalized.endsWith('ETH') ||
+      normalized.endsWith('BNB') ||
+      normalized.endsWith('SOL') ||
+      normalized.endsWith('XRP') ||
+      normalized.endsWith('ADA') ||
+      normalized.endsWith('DOGE')
+    ) {
       return 'crypto' as const;
     }
     if (normalized.length <= 5 && /^[A-Z]{2,5}$/.test(normalized)) {
@@ -43,7 +52,10 @@ export default function DashboardPage() {
 
   const normalizedSymbol = manualSymbol.trim().toUpperCase();
   const matchedAsset = useMemo(
-    () => radarAssets.find((asset) => asset.symbol.toUpperCase() === normalizedSymbol || asset.id.toUpperCase() === normalizedSymbol),
+    () =>
+      radarAssets.find(
+        (asset) => asset.symbol.toUpperCase() === normalizedSymbol || asset.id.toUpperCase() === normalizedSymbol,
+      ),
     [normalizedSymbol, radarAssets],
   );
 
@@ -55,7 +67,9 @@ export default function DashboardPage() {
       const change = Math.abs(asset.priceChange24h ?? 0);
       return change <= 1.8 && (asset.score ?? 0) < 70;
     });
-    const superBoom = radarAssets.filter((asset) => (asset.priceChange24h ?? 0) >= 5 || (asset.score ?? 0) >= 85);
+    const superBoom = radarAssets.filter(
+      (asset) => (asset.priceChange24h ?? 0) >= 5 || (asset.score ?? 0) >= 85,
+    );
     const reverse = radarAssets.filter((asset) => (asset.priceChange24h ?? 0) < 0);
 
     return {
@@ -74,9 +88,10 @@ export default function DashboardPage() {
     const count = filteredGroups[category.id].length;
     return {
       ...category,
-      label: category.id === 'gold' || category.id === 'super' || category.id === 'reverse'
-        ? `${category.label} (${count})`
-        : category.label,
+      label:
+        category.id === 'gold' || category.id === 'super' || category.id === 'reverse'
+          ? `${category.label} (${count})`
+          : category.label,
     };
   });
 
@@ -85,14 +100,14 @@ export default function DashboardPage() {
     setSearchMessage('');
     setSearchedAsset(null);
     if (!symbol) {
-      setSearchMessage('Please enter a symbol to search.');
+      setSearchMessage('Vui lòng nhập mã để tìm kiếm.');
       return;
     }
     if (matchedAsset) {
       setSearchedAsset(matchedAsset);
       selectAsset(matchedAsset.id);
       setActiveTab('analysis');
-      setSearchMessage(`Found ${matchedAsset.symbol}. Redirecting to analysis.`);
+      setSearchMessage(`Tìm thấy ${matchedAsset.symbol}. Chuyển sang phân tích.`);
       return;
     }
 
@@ -122,7 +137,7 @@ export default function DashboardPage() {
       setSearchedAsset(customAsset);
       selectAsset(customAsset.id);
       setActiveTab('analysis');
-      setSearchMessage(`Realtime price loaded for ${symbol} from ${liveData.sourceLabel}.`);
+      setSearchMessage(`Loaded giá realtime cho ${symbol} từ ${liveData.sourceLabel}.`);
       return;
     } catch (error: any) {
       const customAsset: AssetSummary = {
@@ -134,7 +149,7 @@ export default function DashboardPage() {
         priceChange24h: 0,
         lastUpdated: new Date().toISOString(),
         sourceLabel: 'Manual Input',
-        sourceDetails: ['No realtime price available. Data is for reference only.', `Type: ${inferredType}`],
+        sourceDetails: ['Không có giá realtime. Dữ liệu tham khảo.', `Type: ${inferredType}`],
         confidence: 25,
         raw: { manual: true },
         hasLivePrice: false,
@@ -144,32 +159,73 @@ export default function DashboardPage() {
       setSearchedAsset(customAsset);
       selectAsset(customAsset.id);
       setActiveTab('analysis');
-      setSearchMessage(`Could not load realtime price for ${symbol}. Reference-only data is available.`);
+      setSearchMessage(`Không tải được giá realtime cho ${symbol}. Dùng dữ liệu tham khảo.`);
     }
   };
 
   const handleAddWatchlist = () => {
     if (!searchedAsset) {
-      setSearchMessage('Please search a symbol before adding to watchlist.');
+      setSearchMessage('Tìm mã trước khi thêm vào watchlist.');
       return;
     }
     addWatchlistSymbol(searchedAsset.symbol);
-    setSearchMessage(`Added ${searchedAsset.symbol} to watchlist.`);
+    setSearchMessage(`Đã thêm ${searchedAsset.symbol} vào watchlist.`);
   };
 
+  const watchlistAssets = radarAssets.filter((asset) =>
+    watchlistSymbols.includes(asset.symbol.toUpperCase()),
+  );
+
   return (
-    <section className="page-section">
-      <div className="dashboard-category-row">
-        {categoryButtons.map((category) => (
+    <section className="page-section dashboard-page">
+      <div className="dashboard-summary-grid">
+        <article className="dashboard-summary-card">
+          <div className="card-title">
+            <span>Top Picks</span>
+            <span className="badge">{activeAssets.length} kèo</span>
+          </div>
+          <p className="section-subtitle">
+            Hiển thị kèo đầu bảng theo bộ lọc hiện tại, giúp bạn hành động nhanh hơn.
+          </p>
+        </article>
+        <article className="dashboard-summary-card">
+          <div className="card-title">
+            <span>Luồng hành động</span>
+            <span className="badge">Tập trung</span>
+          </div>
+          <p className="section-subtitle">
+            Chọn kèo, mở phân tích, hoặc thêm ngay vào watchlist để không bỏ lỡ cơ hội.
+          </p>
+        </article>
+      </div>
+
+      <div className="dashboard-actions-row">
+        <div className="category-row">
+          {categoryButtons.map((category) => (
+            <button
+              key={category.id}
+              type="button"
+              className={`category-pill ${activeCategory === category.id ? 'active' : ''}`}
+              onClick={() => setActiveCategory(category.id)}
+            >
+              {category.label}
+            </button>
+          ))}
+        </div>
+        <div className="quick-stat-card">
+          <div>
+            <strong>{radarAssets.length}</strong>
+            <p>Toàn bộ mã quét</p>
+          </div>
           <button
-            key={category.id}
             type="button"
-            className={`category-pill ${activeCategory === category.id ? 'active' : ''}`}
-            onClick={() => setActiveCategory(category.id)}
+            className="secondary-button"
+            onClick={() => activeAssets[0] && refreshAssetPrice(activeAssets[0].symbol)}
+            disabled={activeAssets.length === 0}
           >
-            {category.label}
+            Làm mới giá
           </button>
-        ))}
+        </div>
       </div>
 
       <div className="signal-card-grid">
@@ -177,8 +233,6 @@ export default function DashboardPage() {
           const price = asset.currentPrice ?? 0;
           const change = asset.priceChange24h ?? 0;
           const signalLabel = asset.score >= 70 ? 'KÈO VÀNG' : 'WATCH';
-          const power = Math.max(1, Math.min(10, Math.round((asset.score ?? 0) / 10)));
-          const increase = Math.max(0, Math.round(change * 1.2));
           const scoreDisplay = asset.score ?? 0;
           const isWatched = watchlistSymbols.includes(asset.symbol.toUpperCase());
 
@@ -190,9 +244,13 @@ export default function DashboardPage() {
                     <strong>{asset.symbol}</strong>
                     <span className="asset-type">{asset.type === 'crypto' ? 'CRYPTO' : 'STOCK'}</span>
                   </div>
-                  <div className="asset-tagline">{asset.type === 'crypto' ? 'SUPER-PUMP HUNTER' : 'DIVIDEND STRIKE'}</div>
+                  <div className="asset-tagline">
+                    {asset.type === 'crypto' ? 'SUPER-PUMP HUNTER' : 'DIVIDEND STRIKE'}
+                  </div>
                 </div>
-                <span className={`asset-card-tag ${signalLabel === 'KÈO VÀNG' ? 'asset-card-tag-gold' : ''}`}>{signalLabel}</span>
+                <span className={`asset-card-tag ${signalLabel === 'KÈO VÀNG' ? 'asset-card-tag-gold' : ''}`}>
+                  {signalLabel}
+                </span>
               </div>
 
               <div className="asset-price-row">
@@ -205,15 +263,11 @@ export default function DashboardPage() {
                 <div className="metric-row">
                   <div className="metric-block">
                     <span>Tăng</span>
-                    <strong>{increase}</strong>
+                    <strong>{Math.max(0, Math.round(change * 1.2))}</strong>
                   </div>
                   <div className="metric-block">
                     <span>Tiền</span>
-                    <strong>{power}</strong>
-                  </div>
-                  <div className="metric-block">
-                    <span>TS</span>
-                    <strong>{power}</strong>
+                    <strong>{Math.max(1, Math.min(10, Math.round((asset.score ?? 0) / 10)))}</strong>
                   </div>
                 </div>
               </div>
@@ -222,8 +276,6 @@ export default function DashboardPage() {
                 <span className="tag-chip">RANGE</span>
                 <span className="tag-chip">FVG</span>
                 <span className="tag-chip">RSI 60</span>
-                <span className="tag-chip">W3</span>
-                <span className="tag-chip">VWAP</span>
               </div>
 
               <div className="notice-line">
@@ -270,21 +322,74 @@ export default function DashboardPage() {
         })}
       </div>
 
-      <div className="card">
-        <div className="card-title">
-          <span>Search symbol</span>
-          <span>Add to watchlist</span>
-        </div>
-        <div className="input-group" style={{ gridTemplateColumns: '1fr auto auto', display: 'grid', gap: 12, alignItems: 'end' }}>
-          <input
-            value={manualSymbol}
-            onChange={(e) => setManualSymbol(e.target.value)}
-            placeholder="Type symbol, e.g. SSI, VCB, BTC"
-          />
-          <button type="button" className="primary" onClick={handleSymbolSearch}>Search</button>
-          <button type="button" className="secondary-button" onClick={handleAddWatchlist} disabled={!searchedAsset}>Watch</button>
-        </div>
-        {searchMessage && <div className="muted-text" style={{ marginTop: 12 }}>{searchMessage}</div>}
+      <div className="grid-2 dashboard-bottom-grid">
+        <article className="card watchlist-panel">
+          <div className="card-title">
+            <span>Watchlist</span>
+            <span className="badge">{watchlistSymbols.length} mã</span>
+          </div>
+          <div className="card-list">
+            {watchlistAssets.length === 0 ? (
+              <div className="empty-state">
+                Chưa có mã nào trong watchlist. Thêm mã từ kèo hoặc tìm nhanh phía bên phải.
+              </div>
+            ) : (
+              watchlistAssets.slice(0, 6).map((asset) => {
+                const change = asset.priceChange24h ?? 0;
+                const priceDisplay = formatCurrency(asset.currentPrice ?? 0, asset.type === 'crypto' ? 'USD' : 'VND');
+                return (
+                  <button
+                    key={asset.id}
+                    type="button"
+                    className="asset-row"
+                    onClick={() => {
+                      selectAsset(asset.id);
+                      setActiveTab('analysis');
+                    }}
+                  >
+                    <div className="asset-title">
+                      <strong>{asset.symbol}</strong>
+                      <span className="asset-meta">{asset.name || asset.symbol}</span>
+                    </div>
+                    <div className="asset-value">
+                      <strong>{formatPercent(change)}</strong>
+                      <span className={change >= 0 ? 'text-success' : 'text-danger'}>{priceDisplay}</span>
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </article>
+
+        <article className="card search-panel">
+          <div className="card-title">
+            <span>Tìm mã & phân tích</span>
+            <span className="badge">Nhập nhanh</span>
+          </div>
+          <div className="input-group">
+            <input
+              value={manualSymbol}
+              onChange={(e) => setManualSymbol(e.target.value)}
+              placeholder="Nhập mã, ví dụ: SSI, VCB, BTC"
+            />
+            <div className="search-buttons">
+              <button type="button" className="primary" onClick={handleSymbolSearch}>
+                Search
+              </button>
+              <button type="button" className="secondary-button" onClick={handleAddWatchlist} disabled={!searchedAsset}>
+                Watch
+              </button>
+            </div>
+          </div>
+          {searchedAsset && (
+            <div className="search-result-card">
+              <strong>{searchedAsset.symbol}</strong>
+              <div>{searchedAsset.sourceLabel}</div>
+            </div>
+          )}
+          {searchMessage && <div className="muted-text search-note">{searchMessage}</div>}
+        </article>
       </div>
     </section>
   );

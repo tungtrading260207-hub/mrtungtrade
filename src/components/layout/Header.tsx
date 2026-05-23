@@ -7,8 +7,9 @@ const navItems: Array<{ id: TabId; label: string }> = [
   { id: 'dashboard', label: 'Dashboard' },
   { id: 'radar', label: 'Radar' },
   { id: 'analysis', label: 'Analysis' },
-  { id: 'news', label: 'News' },
+  { id: 'calc', label: 'Calc' },
   { id: 'history', label: 'History' },
+  { id: 'news', label: 'News' },
 ];
 
 export default function Header() {
@@ -37,42 +38,51 @@ export default function Header() {
 
   return (
     <header className="app-header">
-      <div className="header-top header-hero">
-        <div className="hero-copy">
-          <div className="label-hero">MR TUNG DNA · AUTO-SCAN ENGINE</div>
-          <div className="hero-title-row">
-            <h1>
-              Phát hiện <span className="hero-highlight">{goldCount}</span> Kèo Vàng
-            </h1>
-          </div>
-          <p className="hero-subtitle">
-            Hệ thống tự động quét toàn bộ thị trường Binance (Crypto) và VN30 (Chứng khoán). Cập nhật lúc: {formatDateTime(now)}
+      <div className="header-hero-grid">
+        <section className="hero-summary">
+          <div className="hero-tag">MR TUNG DNA · MARKET COMMAND</div>
+          <h1 className="hero-title">
+            Dashboard <span>tiếp cận kèo</span> nhanh nhất
+          </h1>
+          <p className="hero-copy">
+            Luồng thông tin rõ ràng, kèo được lọc chuẩn, hành động ngay trong 1 chạm. Tự động cập nhật mọi biến động
+            thị trường Crypto & VN30.
           </p>
-        </div>
+          <div className="hero-actions">
+            <button type="button" className="primary" onClick={loadRadar}>
+              Quét lại ngay
+            </button>
+            <button type="button" className="secondary-button" onClick={() => setActiveTab('radar')}>
+              Xem Radar nhanh
+            </button>
+          </div>
+        </section>
 
-        <div className="summary-cards">
-          <article className="summary-widget">
-            <div className="summary-widget-title">VÀNG</div>
-            <div className="summary-widget-value">{goldCount}</div>
-            <div className="summary-widget-note">Kèo đạt chuẩn DNA</div>
+        <section className="hero-cards-grid">
+          <article className="hero-card">
+            <div className="hero-card-title">Kèo Vàng</div>
+            <div className="hero-card-value">{goldCount}</div>
+            <div className="hero-card-note">Kèo đạt chuẩn DNA</div>
           </article>
-          <article className="summary-widget">
-            <div className="summary-widget-title">GOM</div>
-            <div className="summary-widget-value">{gomCount}</div>
-            <div className="summary-widget-note">Tổng mã đang theo dõi</div>
+          <article className="hero-card hero-card-strong">
+            <div className="hero-card-title">Lượng mã</div>
+            <div className="hero-card-value">{gomCount}</div>
+            <div className="hero-card-note">Tổng mã đang scan</div>
           </article>
-          <article className="summary-widget">
-            <div className="summary-widget-title danger">KÈO NGHỊCH ĐẢO</div>
-            <div className="summary-widget-value">{reverseCount}</div>
-            <div className="summary-widget-note">Biến động ngược xu hướng</div>
+          <article className="hero-card">
+            <div className="hero-card-title">Nghịch đảo</div>
+            <div className="hero-card-value">{reverseCount}</div>
+            <div className="hero-card-note">Mã đi ngược xu hướng</div>
           </article>
-          <button type="button" className="outline-button" onClick={loadRadar}>
-            Quét lại ngay
-          </button>
-        </div>
+          <article className="hero-card hero-card-tiny">
+            <div className="hero-card-title">Cập nhật</div>
+            <div className="hero-card-value">{formatDateTime(now)}</div>
+            <div className="hero-card-note">Thời gian thực</div>
+          </article>
+        </section>
       </div>
 
-      <div className="top-toolbar header-nav-row">
+      <div className="header-nav-row header-nav-compact">
         {navItems.map((item) => (
           <button
             key={item.id}
