@@ -152,7 +152,7 @@ function buildAnalysisForAsset(asset: AssetSummary) {
 }
 
 const useAppStore = create<AppState>((set, get) => ({
-  activeTab: 'radar',
+  activeTab: 'dashboard',
   radarAssets: [],
   selectedAssetId: null,
   analysis: null,
