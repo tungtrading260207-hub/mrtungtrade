@@ -70,7 +70,9 @@ export default function AnalysisPage() {
                 <span>Biến động 24h: {formatPercent(asset.priceChange24h)}</span>
                 <span>Biến động 7d: {asset.priceChange7d !== undefined ? formatPercent(asset.priceChange7d) : 'Chưa có'}</span>
                 <span>Vốn hóa: {asset.marketCap ? formatCurrency(asset.marketCap, 'USD') : 'Không có dữ liệu'}</span>
-                <span>Confidence: {asset.confidence ?? 'N/A'}%</span>
+                <span className={`confidence-badge ${asset.confidence && asset.confidence >= 70 ? 'gold' : ''}`} data-tooltip={asset.sourceDetails?.join(' | ')}>
+                  {asset.confidence ? `${asset.confidence}%` : 'N/A'}
+                </span>
                 <span>Sources: {asset.sourceLabel}</span>
                 <span>Cập nhật: {formatDateTime(asset.lastUpdated)}</span>
               </div>

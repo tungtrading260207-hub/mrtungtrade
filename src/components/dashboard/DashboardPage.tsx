@@ -1,49 +1,10 @@
-import { useMemo, useRef, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import useAppStore from '../../store/useAppStore';
-import { formatCurrency, formatPercent } from '../../utils/formatters';
 import { AssetSummary } from '../../types';
 import { fetchLiveAssetSummary } from '../../data/api';
 
-function signalLabel(score: number) {
-  if (score >= 70) return 'KÈO VÀNG';
-  if (score >= 55) return 'CHỜ KÍCH NỔ';
-  return 'GIỮ VỊ THẾ';
-}
-
-function AssetTable({ title, assets }: { title: string; assets: Array<any> }) {
-  return (
-    <div className="card">
-      <div className="card-title">
-        <span>{title}</span>
-        <span>{assets.length} mục</span>
-      </div>
-      <div className="card-list">
-        {assets.map((asset, index) => (
-          <div key={asset.id} className="asset-row" style={{ padding: '14px 18px' }}>
-            <div>
-              <div className="asset-title" style={{ gap: 10 }}>
-                <strong>{index + 1}. {asset.symbol}</strong>
-                <span style={{ fontSize: 12, color: '#94a3b8' }}>{signalLabel(asset.score)}</span>
-              </div>
-              <div className="asset-meta" style={{ gap: 8 }}>
-                <span>{asset.sourceLabel}</span>
-                <span>{asset.confidence ? `Tin cậy ${asset.confidence}%` : 'Tin cậy chưa rõ'}</span>
-              </div>
-            </div>
-            <div className="asset-value" style={{ minWidth: 108, textAlign: 'right' }}>
-              <div style={{ fontSize: 18, fontWeight: 700 }}>{formatCurrency(asset.currentPrice, asset.type === 'crypto' ? 'USD' : 'VND')}</div>
-              <div className={asset.priceChange24h >= 0 ? 'text-success' : 'text-danger'}>{formatPercent(asset.priceChange24h)}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export default function DashboardPage() {
   const radarAssets = useAppStore((state) => state.radarAssets);
-  const selectedAssetId = useAppStore((state) => state.selectedAssetId);
   const selectAsset = useAppStore((state) => state.selectAsset);
   const setActiveTab = useAppStore((state) => state.setActiveTab);
   const addCustomAsset = useAppStore((state) => state.addCustomAsset);
@@ -56,9 +17,6 @@ export default function DashboardPage() {
   const [manualSymbol, setManualSymbol] = useState('');
   const [searchMessage, setSearchMessage] = useState('');
   const [searchedAsset, setSearchedAsset] = useState<AssetSummary | null>(null);
-  const cryptoSectionRef = useRef<HTMLDivElement>(null);
-  const vnSectionRef = useRef<HTMLDivElement>(null);
-  const newsSectionRef = useRef<HTMLDivElement>(null);
 
   const inferType = (symbol: string) => {
     const normalized = symbol.trim().toUpperCase();
@@ -71,33 +29,25 @@ export default function DashboardPage() {
     return 'crypto' as const;
   };
 
-  const scrollToRef = (ref: { current: HTMLDivElement | null }) => {
-    ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
   const normalizedSymbol = manualSymbol.trim().toUpperCase();
   const matchedAsset = useMemo(
     () => radarAssets.find((asset) => asset.symbol.toUpperCase() === normalizedSymbol || asset.id.toUpperCase() === normalizedSymbol),
     [normalizedSymbol, radarAssets],
   );
 
-  const cryptoAssets = radarAssets.filter((asset) => asset.type === 'crypto').slice(0, 6);
-  const vnAssets = radarAssets.filter((asset) => asset.type === 'vn-stock').slice(0, 6);
-  const highlightAssets = radarAssets.slice(0, 3);
-
   const handleSymbolSearch = async () => {
     const symbol = normalizedSymbol;
     setSearchMessage('');
     setSearchedAsset(null);
     if (!symbol) {
-      setSearchMessage('Nhập mã cần tìm kiếm để bắt đầu.');
+      setSearchMessage('Please enter a symbol to search.');
       return;
     }
     if (matchedAsset) {
       setSearchedAsset(matchedAsset);
       selectAsset(matchedAsset.id);
       setActiveTab('analysis');
-      setSearchMessage(`Đã tìm thấy ${matchedAsset.symbol}. Chuyển sang phân tích chi tiết.`);
+      setSearchMessage(`Found ${matchedAsset.symbol}. Redirecting to analysis.`);
       return;
     }
 
@@ -127,7 +77,7 @@ export default function DashboardPage() {
       setSearchedAsset(customAsset);
       selectAsset(customAsset.id);
       setActiveTab('analysis');
-      setSearchMessage(`Đã lấy giá realtime cho ${symbol} từ nguồn ${liveData.sourceLabel}.`);
+      setSearchMessage(`Realtime price loaded for ${symbol} from ${liveData.sourceLabel}.`);
       return;
     } catch (error: any) {
       const customAsset: AssetSummary = {
@@ -139,7 +89,7 @@ export default function DashboardPage() {
         priceChange24h: 0,
         lastUpdated: new Date().toISOString(),
         sourceLabel: 'Manual Input',
-        sourceDetails: [`Chưa có giá realtime. Dữ liệu phân tích chỉ mang tính tham khảo.`, `Phân loại: ${inferredType}`],
+        sourceDetails: ['No realtime price available. Data is for reference only.', `Type: ${inferredType}`],
         confidence: 25,
         raw: { manual: true },
         hasLivePrice: false,
@@ -149,87 +99,49 @@ export default function DashboardPage() {
       setSearchedAsset(customAsset);
       selectAsset(customAsset.id);
       setActiveTab('analysis');
-      setSearchMessage(`Không lấy được giá realtime cho ${symbol}. Phân tích chỉ mang tính tham khảo.`);
+      setSearchMessage(`Could not load realtime price for ${symbol}. Reference-only data is available.`);
     }
   };
 
   const handleAddWatchlist = () => {
     if (!searchedAsset) {
-      setSearchMessage('Vui lòng tìm mã trước khi thêm vào watchlist.');
+      setSearchMessage('Please search a symbol before adding to watchlist.');
       return;
     }
     addWatchlistSymbol(searchedAsset.symbol);
-    setSearchMessage(`Đã thêm ${searchedAsset.symbol} vào watchlist.`);
+    setSearchMessage(`Added ${searchedAsset.symbol} to watchlist.`);
   };
 
   return (
     <section className="page-section">
-      <div className="card" style={{ padding: 24, background: 'linear-gradient(135deg, rgba(28, 38, 62, 0.96), rgba(10, 11, 24, 0.9))', border: '1px solid rgba(203, 171, 79, 0.22)' }}>
-        <div className="card-title">
-          <span>Kèo vàng chọn lọc</span>
-          <span className="badge">Focus signal</span>
-        </div>
-        <div className="card-list">
-          {highlightAssets.map((asset) => (
-            <button
-              key={asset.id}
-              type="button"
-              className={`asset-row ${selectedAssetId === asset.id ? 'active' : ''}`}
-              onClick={() => selectAsset(asset.id)}
-              style={{ padding: '18px' }}
-            >
-              <div>
-                <div className="asset-title">
-                  <div>
-                    <strong>{asset.symbol}</strong>
-                    <div style={{ color: '#94a3b8', fontSize: 13 }}>{asset.name}</div>
-                  </div>
-                </div>
-                <div className="asset-meta">
-                  <span>{asset.sourceLabel}</span>
-                  <span>{asset.confidence ? `Confidence ${asset.confidence}%` : 'Tin cậy chưa rõ'}</span>
-                </div>
-              </div>
-              <div className="asset-value">
-                <div className={asset.priceChange24h >= 0 ? 'text-success' : 'text-danger'}>{formatPercent(asset.priceChange24h)}</div>
-                <div className="badge">{signalLabel(asset.score)}</div>
-              </div>
-            </button>
-          ))}
-        </div>
-      </div>
-
       <div className="card">
         <div className="card-title">
-          <span>Điều hướng nhanh</span>
-          <span className="badge">Tới kèo & tin tức</span>
+          <span>Quick navigation</span>
+          <span className="badge">Compact dashboard</span>
         </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          <button type="button" className="primary" onClick={() => scrollToRef(cryptoSectionRef)}>
-            Kèo vàng Crypto
+          <button type="button" className="primary" onClick={() => setActiveTab('radar')}>
+            View Radar picks
           </button>
-          <button type="button" className="primary" onClick={() => scrollToRef(vnSectionRef)}>
-            Kèo vàng Chứng khoán
-          </button>
-          <button type="button" className="secondary-button" onClick={() => scrollToRef(newsSectionRef)}>
-            Bảng tin tức
+          <button type="button" className="secondary-button" onClick={() => setActiveTab('news')}>
+            Market news
           </button>
         </div>
       </div>
 
       <div className="card">
         <div className="card-title">
-          <span>Tìm mã và thêm vào watchlist</span>
-          <span>Nhập mã để theo dõi</span>
+          <span>Search symbol</span>
+          <span>Add to watchlist</span>
         </div>
         <div className="input-group" style={{ gridTemplateColumns: '1fr auto auto', display: 'grid', gap: 12, alignItems: 'end' }}>
           <input
             value={manualSymbol}
             onChange={(e) => setManualSymbol(e.target.value)}
-            placeholder="Nhập mã (VD: SSI, VCB, BTC)"
+            placeholder="Type symbol, e.g. SSI, VCB, BTC"
           />
-          <button type="button" className="primary" onClick={handleSymbolSearch}>Tìm mã</button>
-          <button type="button" className="secondary-button" onClick={handleAddWatchlist} disabled={!searchedAsset}>Theo dõi</button>
+          <button type="button" className="primary" onClick={handleSymbolSearch}>Search</button>
+          <button type="button" className="secondary-button" onClick={handleAddWatchlist} disabled={!searchedAsset}>Watch</button>
         </div>
         {searchMessage && <div className="muted-text" style={{ marginTop: 12 }}>{searchMessage}</div>}
         {searchedAsset && (
@@ -237,30 +149,32 @@ export default function DashboardPage() {
             <div className="asset-meta" style={{ gap: 10 }}>
               <span>{searchedAsset.symbol} — {searchedAsset.name}</span>
               <span>{searchedAsset.sourceLabel}</span>
-              <span>{searchedAsset.confidence ? `Confidence ${searchedAsset.confidence}%` : 'Độ tin cậy chưa xác thực'}</span>
+              <span className={`confidence-badge ${searchedAsset.confidence && searchedAsset.confidence >= 70 ? 'gold' : ''}`} data-tooltip={searchedAsset.sourceDetails?.join(' | ')}>
+                {searchedAsset.confidence ? `${searchedAsset.confidence}%` : 'N/A'}
+              </span>
             </div>
             {!searchedAsset.hasLivePrice && (
               <div className="card" style={{ padding: '12px 14px', background: 'rgba(231, 76, 60, 0.08)', border: '1px solid rgba(231, 76, 60, 0.22)' }}>
-                <strong style={{ color: '#e55d4a' }}>Chú ý:</strong> Mã này chưa có giá realtime. Phân tích sẽ chỉ mang tính tham khảo, nên kiểm tra giá tại sàn chính thức trước khi vào lệnh.
+                <strong style={{ color: '#e55d4a' }}>Note:</strong> No realtime price available. Reference-only analysis, verify price before trading.
               </div>
             )}
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <button type="button" className="primary" onClick={() => { selectAsset(searchedAsset.id); setActiveTab('analysis'); }}>
-                Xem phân tích
+                Go to analysis
               </button>
               <button type="button" className="secondary-button" onClick={() => { selectAsset(searchedAsset.id); setActiveTab('calc'); }}>
-                Nhập vị thế
+                Position input
               </button>
               <button
                 type="button"
                 className="secondary-button"
                 onClick={async () => {
-                  setSearchMessage('Đang làm mới giá...');
+                  setSearchMessage('Refreshing price...');
                   const ok = await refreshAssetPrice(searchedAsset.id);
-                  setSearchMessage(ok ? `Đã cập nhật giá cho ${searchedAsset.symbol}` : `Không thể lấy giá cho ${searchedAsset.symbol}`);
+                  setSearchMessage(ok ? `Updated price for ${searchedAsset.symbol}` : `Cannot refresh price for ${searchedAsset.symbol}`);
                 }}
               >
-                Lấy giá
+                Refresh price
               </button>
             </div>
           </div>
@@ -269,8 +183,8 @@ export default function DashboardPage() {
 
       <div className="card">
         <div className="card-title">
-          <span>Watchlist của bạn</span>
-          <span>Quản lý mã theo dõi</span>
+          <span>Your watchlist</span>
+          <span>Manage tracked symbols</span>
         </div>
         <div className="card-list">
           {watchlistSymbols.length > 0 ? (
@@ -280,11 +194,18 @@ export default function DashboardPage() {
                 <div key={symbol} className="asset-row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
                   <div>
                     <strong>{symbol}</strong>
-                    <div className="muted-text" style={{ fontSize: 12 }}>
-                      {watchAsset ? `${watchAsset.type === 'crypto' ? 'Crypto' : 'VN Stock'} • ${watchAsset.sourceLabel}` : 'Chưa có dữ liệu kèm theo'}
+                    <div className="asset-meta" style={{ gap: 8, marginTop: 6 }}>
+                      <span style={{ fontSize: 12, color: '#94a3b8' }}>
+                        {watchAsset ? (watchAsset.type === 'crypto' ? 'Crypto' : 'VN Stock') : 'No additional data'}
+                      </span>
+                      {watchAsset && (
+                        <span className={`confidence-badge ${watchAsset.confidence && watchAsset.confidence >= 70 ? 'gold' : ''}`} data-tooltip={watchAsset.sourceDetails?.join(' | ')}>
+                          {watchAsset.confidence ? `${watchAsset.confidence}%` : 'N/A'}
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                     {watchAsset && (
                       <button
                         type="button"
@@ -294,46 +215,24 @@ export default function DashboardPage() {
                           setActiveTab('analysis');
                         }}
                       >
-                        Phân tích
+                        Analyze
                       </button>
                     )}
-                    {watchAsset && (
-                      <button
-                        type="button"
-                        className="secondary-button"
-                        onClick={async () => {
-                          setSearchMessage(`Đang làm mới giá ${symbol}...`);
-                          const ok = await refreshAssetPrice(symbol);
-                          setSearchMessage(ok ? `Đã cập nhật giá ${symbol}` : `Không thể lấy giá ${symbol}`);
-                        }}
-                      >
-                        Làm mới giá
-                      </button>
-                    )}
-                    <button type="button" className="secondary-button" onClick={() => removeWatchlistSymbol(symbol)}>Xóa</button>
+                    <button type="button" className="secondary-button" onClick={() => removeWatchlistSymbol(symbol)}>Remove</button>
                   </div>
                 </div>
               );
             })
           ) : (
-            <div className="muted-text">Chưa có mã watchlist. Thêm mã bằng cách nhập ở trên.</div>
+            <div className="muted-text">No watchlist symbols yet. Add one above.</div>
           )}
         </div>
       </div>
 
-      <div className="grid-2" style={{ gap: 18 }}>
-        <div ref={cryptoSectionRef}>
-          <AssetTable title="Kèo Crypto" assets={cryptoAssets} />
-        </div>
-        <div ref={vnSectionRef}>
-          <AssetTable title="Kèo Chứng khoán Việt" assets={vnAssets} />
-        </div>
-      </div>
-
-      <div ref={newsSectionRef} className="card">
+      <div className="card">
         <div className="card-title">
-          <span>Tin tức thị trường</span>
-          <span className="badge">Nguồn RSS & Tin tức</span>
+          <span>Market news</span>
+          <span className="badge">RSS and headlines</span>
         </div>
         <div className="card-list" style={{ gap: 10, maxHeight: 320, overflow: 'auto' }}>
           {news.length > 0 ? (
@@ -346,40 +245,8 @@ export default function DashboardPage() {
               </a>
             ))
           ) : (
-            <div className="muted-text">Đang tải tin tức. Vui lòng refresh lại trang nếu không thấy nội dung.</div>
+            <div className="muted-text">Loading news... refresh if no content appears.</div>
           )}
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="card-title">
-          <span>Danh sách mở rộng</span>
-          <span>Chọn để xem phân tích</span>
-        </div>
-        <div className="card-list">
-          {radarAssets.map((asset) => (
-            <button
-              key={asset.id}
-              type="button"
-              className={`asset-row ${selectedAssetId === asset.id ? 'active' : ''}`}
-              onClick={() => selectAsset(asset.id)}
-            >
-              <div>
-                <div className="asset-title">
-                  <strong>{asset.symbol}</strong>
-                </div>
-                <div className="asset-meta">
-                  <span>{asset.type === 'crypto' ? 'Crypto' : 'VN Stock'}</span>
-                  <span>{asset.sourceLabel}</span>
-                </div>
-              </div>
-              <div className="asset-value">
-                <div className={asset.priceChange24h >= 0 ? 'text-success' : 'text-danger'}>{formatPercent(asset.priceChange24h)}</div>
-                <div className="badge">{asset.score}</div>
-              </div>
-            </button>
-          ))}
-          {radarAssets.length === 0 && <div style={{ color: '#8892b0' }}>Không tìm thấy dữ liệu.</div>}
         </div>
       </div>
     </section>
