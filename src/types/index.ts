@@ -7,8 +7,16 @@ export interface AssetSummary {
   type: MarketType;
   currentPrice: number;
   priceChange24h: number;
+  priceChange7d?: number;
+  priceHigh24h?: number;
+  priceLow24h?: number;
+  circulatingSupply?: number;
+  totalSupply?: number;
   marketCap?: number;
+  marketCapRank?: number;
   volume24h?: number;
+  marketCapChange24h?: number;
+  sparkline7d?: number[];
   lastUpdated: string;
   sourceLabel: string;
   raw?: Record<string, unknown>;
